@@ -1,5 +1,6 @@
 package myapp.service;
 
+import myapp.model.Role;
 import myapp.model.User;
 import myapp.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +23,7 @@ public class UserService {
             throw new IllegalArgumentException("Email already registered");
         }
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        user.setRole(Role.REGULAR); // Assign default REGULAR role
         return userRepository.save(user);
     }
 }

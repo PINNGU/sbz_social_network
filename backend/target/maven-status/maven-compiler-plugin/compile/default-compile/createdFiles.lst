@@ -1,4 +1,5 @@
 myapp\model\User.class
+myapp\model\Role.class
 myapp\config\CorsConfig.class
 myapp\repository\UserRepository.class
 myapp\config\SecurityConfig.class

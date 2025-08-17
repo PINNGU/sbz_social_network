@@ -1,0 +1,19 @@
+body {
+  background-color: #f0f2f5; /* Facebook light grey background */
+  color: #1c1e21; /* Dark text color */
+  font-family: Arial, sans-serif; /* Common Facebook font */
+}
+
+.card-header {
+  border-bottom: 1px solid #dddfe2; /* Light border for card header */
+}
+
+.btn-primary {
+  background-color: #1877f2; /* Facebook blue for primary buttons */
+  border-color: #1877f2;
+}
+
+.btn-primary:hover {
+  background-color: #166fe5; /* Darker blue on hover */
+  border-color: #166fe5;
+}

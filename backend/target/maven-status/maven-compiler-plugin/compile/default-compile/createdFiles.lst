@@ -1,2 +1,8 @@
-com\example\socialnetwork\SocialNetwork.class
+myapp\model\User.class
+myapp\config\CorsConfig.class
+myapp\repository\UserRepository.class
+myapp\config\SecurityConfig.class
+myapp\controller\UserController.class
+myapp\service\UserService.class
+myapp\SocialNetwork.class
 com\example\socialnetwork\config\DroolsConfig.class

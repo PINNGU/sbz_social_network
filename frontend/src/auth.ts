@@ -1,7 +1,6 @@
 import { reactive } from 'vue';
 
 interface UserAuthData {
-    token: string;
     id: number;
     email: string;
     role: string;
@@ -17,18 +16,14 @@ if (storedUser) {
     authStore.user = JSON.parse(storedUser);
 }
 
-export function setAuthData(token: string, id: number, email: string, role: string) {
-    const userAuthData: UserAuthData = { token, id, email, role };
+export function setAuthData(id: number, email: string, role: string) {
+    const userAuthData: UserAuthData = { id, email, role };
     authStore.user = userAuthData;
     localStorage.setItem('user', JSON.stringify(userAuthData));
 }
 
 export function getUser() {
     return authStore.user;
-}
-
-export function getToken() {
-    return authStore.user ? authStore.user.token : null;
 }
 
 export function getRole() {

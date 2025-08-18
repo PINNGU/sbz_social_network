@@ -3,15 +3,16 @@ import RegistrationForm from '../components/RegistrationForm.vue';
 import LoginPage from '../components/LoginPage.vue';
 import GlobalPosts from '../components/GlobalPosts.vue';
 import MyPosts from '../components/MyPosts.vue';
-import CreatePost from '../components/CreatePost.vue';
 import CreatePlace from '../components/CreatePlace.vue';
+import CreatePost from '../components/CreatePost.vue';
+
 import { isLoggedIn, getRole } from '../auth'; // Import auth functions
 
 const routes = [
   {
     path: '/',
     redirect: '/login' // Redirect to login by default
-  },
+  },  
   {
     path: '/register',
     name: 'Register',
@@ -38,14 +39,9 @@ const routes = [
     path: '/create-post',
     name: 'CreatePost',
     component: CreatePost,
-    meta: { requiresAuth: true, requiredRole: 'REGULAR' }
-  },
-  {
-    path: '/create-place',
-    name: 'CreatePlace',
-    component: CreatePlace,
-    meta: { requiresAuth: true, requiredRole: 'ADMIN' } // Example: only ADMIN can create places
-  },
+    meta: { requiresAuth: true } // Requires authentication
+  }
+
 ];
 
 const router = createRouter({
@@ -56,6 +52,8 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !isLoggedIn()) {
     next('/login');
+  } else if ((to.name === 'Login' || to.name === 'Register') && isLoggedIn()) {
+    next('/global-posts'); // Redirect logged-in users away from login/register
   } else if (to.meta.requiredRole && getRole() !== to.meta.requiredRole) {
     next('/global-posts'); // Redirect to global posts if role doesn't match
   } else {

@@ -1,52 +1,33 @@
 package myapp.controller;
 
-import myapp.model.User;
-import myapp.service.UserService;
-import jakarta.validation.Valid;
-import org.springframework.http.HttpStatus;
+import myapp.payload.AuthPayloads;
+import myapp.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import myapp.security.jwt.JwtUtils;
-import myapp.payload.AuthPayloads.LoginRequest;
-import myapp.payload.AuthPayloads.AuthResponse;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    private final UserService userService;
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtils jwtUtils;
-
-    public AuthController(UserService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
-        this.userService = userService;
-        this.authenticationManager = authenticationManager;
-        this.jwtUtils = jwtUtils;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
-        try {
-            User registeredUser = userService.registerUser(user);
-            return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        }
+    public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-        
-        User userDetails = (User) authentication.getPrincipal();
-        return ResponseEntity.ok(new AuthResponse(jwt, userDetails.getId(), userDetails.getEmail(), userDetails.getRole().name()));
+    public ResponseEntity<?> login(@RequestBody AuthPayloads.LoginRequest loginRequest) {
+        var userOpt = userRepository.findByEmail(loginRequest.getEmail());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(401).body("Invalid credentials");
+        }
+        var user = userOpt.get();
+        if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(401).body("Invalid credentials");
+        }
+        // No JWT, just return id, email, role
+        return ResponseEntity.ok(new AuthPayloads.AuthResponse(null, user.getId(), user.getEmail(), user.getRole().name()));
     }
 }

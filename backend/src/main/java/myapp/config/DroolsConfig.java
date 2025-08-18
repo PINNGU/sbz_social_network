@@ -1,4 +1,4 @@
-package com.example.socialnetwork.config;
+package myapp.config;
 
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;

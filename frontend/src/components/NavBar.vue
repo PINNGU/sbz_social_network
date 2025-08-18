@@ -10,10 +10,10 @@
             <li class="nav-item" v-if="isLoggedIn">
               <router-link class="nav-link" to="/global-posts">Global Posts</router-link>
             </li>
-            <li class="nav-item" v-if="isLoggedIn">
+            <li class="nav-item" v-if="isLoggedIn && isRegular">
               <router-link class="nav-link" to="/my-posts">My Posts</router-link>
             </li>
-            <li class="nav-item" v-if="isLoggedIn">
+            <li class="nav-item" v-if="isLoggedIn && isRegular">
                 <router-link class="nav-link" to="/create-post">Create Post</router-link>
               </li>
             <li class="nav-item" v-if="isLoggedIn && isAdmin">
@@ -43,22 +43,34 @@
   
   export default defineComponent({
     name: 'NavBar',
-    setup() {
+    // emits: ['open-create-post-modal'], // Declare the emitted event
+    setup(props) {
       const router = useRouter();
   
       const handleLogout = () => {
         logout();
         router.push('/login');
       };
+
+      // const openCreatePostModal = () => {
+      //   emit('open-create-post-modal'); // Emit the event
+      //   console.log('Attempting to open create post modal...'); // For debugging
+      // };
   
       const isAdmin = computed(() => {
         return getRole() === 'ADMIN';
       });
 
+      const isRegular = computed(() => {
+        return getRole() === 'REGULAR';
+      });
+
       return {
         isLoggedIn: computed(() => isLoggedIn()),
         isAdmin,
+        isRegular,
         handleLogout,
+        // openCreatePostModal,
       };
     },
   });

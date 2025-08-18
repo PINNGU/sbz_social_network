@@ -1,65 +1,52 @@
 package myapp.controller;
 
 import myapp.model.Post;
+import myapp.model.User;
+import myapp.repository.UserRepository;
 import myapp.service.PostService;
-import org.springframework.http.HttpStatus;
+import myapp.payload.CreatePostRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
+    private static final Logger logger = LoggerFactory.getLogger(PostController.class);
 
-    private final PostService postService;
+    @Autowired
+    private PostService postService;
 
-    public PostController(PostService postService) {
-        this.postService = postService;
-    }
+    @Autowired
+    private UserRepository userRepository;
 
-    @PostMapping("/{userId}")
-    public ResponseEntity<Post> createPost(@RequestBody Post post, @PathVariable Long userId) {
-        Post createdPost = postService.createPost(post, userId);
-        return new ResponseEntity<>(createdPost, HttpStatus.CREATED);
-    }
 
-    @GetMapping
-    public ResponseEntity<List<Post>> getAllPosts() {
-        List<Post> posts = postService.getAllPosts();
-        return new ResponseEntity<>(posts, HttpStatus.OK);
-    }
+    // Optionally, add more endpoints for fetching posts, etc.
 
-    @GetMapping("/{id}")
-    public ResponseEntity<Post> getPostById(@PathVariable Long id) {
-        return postService.getPostById(id)
-                .map(post -> new ResponseEntity<>(post, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
-    }
-
-    @PostMapping("/{postId}/like/{userId}")
-    public ResponseEntity<Post> likePost(@PathVariable Long postId, @PathVariable Long userId) {
-        try {
-            Post likedPost = postService.likePost(postId, userId);
-            return new ResponseEntity<>(likedPost, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+    @PostMapping("/create")
+    public ResponseEntity<Post> createPost(@RequestBody CreatePostRequest req) {
+        if (req.getUserId() == null) {
+            return ResponseEntity.badRequest().body(null);
         }
-    }
-
-    @PostMapping("/{postId}/report/{userId}")
-    public ResponseEntity<Post> reportPost(@PathVariable Long postId, @PathVariable Long userId) {
-        try {
-            Post reportedPost = postService.reportPost(postId, userId);
-            return new ResponseEntity<>(reportedPost, HttpStatus.OK);
-        } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        User user = userRepository.findById(req.getUserId()).orElse(null);
+        if (user == null) {
+            return ResponseEntity.badRequest().body(null);
         }
+        Post post = new Post();
+        post.setDescription(req.getDescription());
+        post.setHashtags(req.getHashtags());
+        post.setUser(user);
+        Post savedPost = postService.savePost(post);
+        return ResponseEntity.ok(savedPost);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePost(@PathVariable Long id) {
-        postService.deletePost(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    @GetMapping("")
+    public ResponseEntity<?> getAllPosts() {
+        return ResponseEntity.ok(postService.getAllPosts());
     }
 }

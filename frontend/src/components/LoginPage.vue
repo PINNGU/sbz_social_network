@@ -72,7 +72,7 @@
             if (response.status === 200) {
               console.log('Login successful!', response.data);
               // Store JWT token and user info (e.g., in localStorage or Vuex store)
-              setAuthData(response.data.token, response.data.id, response.data.email, response.data.role);
+              setAuthData( response.data.id, response.data.email, response.data.role);
               router.push('/global-posts'); // Redirect to a protected page
             } else {
               loginError.value = 'Login failed with status: ' + response.status;

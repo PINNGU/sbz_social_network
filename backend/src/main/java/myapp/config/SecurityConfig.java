@@ -13,26 +13,20 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import myapp.security.jwt.JwtUtils;
 
 @Configuration
 @EnableMethodSecurity
 public class SecurityConfig {
 
     private final UserService userDetailsService;
-    private final AuthEntryPointJwt unauthorizedHandler;
-    private final PasswordEncoder passwordEncoder; // Add PasswordEncoder here
+    private final PasswordEncoder passwordEncoder;
 
-    public SecurityConfig(UserService userDetailsService, AuthEntryPointJwt unauthorizedHandler, PasswordEncoder passwordEncoder) {
+    public SecurityConfig(UserService userDetailsService, PasswordEncoder passwordEncoder) {
         this.userDetailsService = userDetailsService;
-        this.unauthorizedHandler = unauthorizedHandler;
-        this.passwordEncoder = passwordEncoder; // Initialize PasswordEncoder
+        this.passwordEncoder = passwordEncoder;
     }
 
-    @Bean
-    public AuthTokenFilter authenticationJwtTokenFilter() {
-        return new AuthTokenFilter();
-    }
+
 
     @Bean
     public DaoAuthenticationProvider authenticationProvider() {
@@ -51,25 +45,25 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf
-                        .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**"))
-                        .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**"))
-                )
-                .exceptionHandling(exception -> exception.authenticationEntryPoint(unauthorizedHandler))
+        System.out.println("[SecurityConfig] Building filter chain for /api/posts and roles...");
+    http
+        .csrf(csrf -> csrf
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/posts/**"))
+        )
+                // No JWT or custom entry point needed
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/register")).permitAll() // Explicitly permit registration
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login")).permitAll() // Explicitly permit login
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/posts/**")).permitAll() // Allow all post endpoints for now
-                        .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
-                        .anyRequest().authenticated()
-                )
-                .headers(headers -> headers.frameOptions().sameOrigin());
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/register")).permitAll()
+            .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login")).permitAll()
+            .anyRequest().permitAll()
+        );
+        
+                // .headers(headers -> headers.frameOptions().sameOrigin());
 
         http.authenticationProvider(authenticationProvider());
-        http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+
 
         return http.build();
     }

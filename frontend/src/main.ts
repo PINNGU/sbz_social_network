@@ -1,9 +1,25 @@
 import { createApp } from 'vue'
 import App from './App.vue'
-import router from './router'; // Import the router
+import router from './router';
+import axios from 'axios';
+import { getToken } from './auth';
 
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap'
-import './assets/styles.css' // Import global styles
+import './assets/styles.css'
 
-createApp(App).use(router).mount('#app') // Use the router
+// Axios interceptor to add JWT token to requests
+axios.interceptors.request.use(
+    config => {
+        const token = getToken();
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    error => {
+        return Promise.reject(error);
+    }
+);
+
+createApp(App).use(router).mount('#app')

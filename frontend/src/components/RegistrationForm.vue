@@ -94,7 +94,7 @@
         registrationError.value = null;
         if (validateForm()) {
           try {
-            const response = await axios.post('/api/register', user.value);
+            const response = await axios.post('/api/auth/register', user.value);
             if (response.status === 201) { // HttpStatus.CREATED
               console.log('Registration successful!', response.data);
               router.push('/login'); // Redirect to login page

@@ -18,6 +18,10 @@ public class PostService {
             return postRepository.save(post);
         }
 
+        public Post getPostById(Long id) {
+            return postRepository.findById(id).orElse(null);
+        }
+
         public java.util.List<Post> getAllPosts() {
             return postRepository.findAll();
         }

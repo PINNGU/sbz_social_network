@@ -1,0 +1,18 @@
+package rules;
+
+import myapp.model.Post;
+import myapp.model.User;
+import java.time.LocalDateTime;
+
+global java.util.List filteredPosts;
+global Long userIdToShow;
+
+rule "Only show posts from friends and not older than a day"
+when
+    $post : Post($userId : user.id, $date : dateOfCreation)
+    $currentUser : User(id == userIdToShow)
+    eval($currentUser.getFriends().contains($userId))
+    eval($date.isAfter(java.time.LocalDateTime.now().minusDays(1)))
+then
+    filteredPosts.add($post);
+end

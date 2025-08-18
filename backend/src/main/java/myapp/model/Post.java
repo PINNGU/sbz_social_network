@@ -15,6 +15,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Post {
+    @ElementCollection
+    @CollectionTable(name = "post_likes", joinColumns = @JoinColumn(name = "post_id"))
+    @Column(name = "liker_user_id")
+    private List<Long> likes = new ArrayList<>(); // Store user IDs who liked the post
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -1,4 +1,7 @@
+
 package myapp.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -18,12 +21,16 @@ import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import jakarta.persistence.ElementCollection;
 
 @Entity
 @Table(name = "app_user")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class User implements UserDetails {
 
     @Id
@@ -48,6 +55,10 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    // Friends: store user IDs of friends
+    @ElementCollection
+    private Set<Long> friends = new HashSet<>();
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -94,5 +105,12 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+    // Getter and setter for friends
+    public Set<Long> getFriends() {
+        return friends;
+    }
+    public void setFriends(Set<Long> friends) {
+        this.friends = friends;
     }
 }

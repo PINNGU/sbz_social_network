@@ -3,7 +3,10 @@ myapp\model\Role.class
 myapp\payload\AuthPayloads$AuthResponse.class
 myapp\payload\AuthPayloads$LoginRequest.class
 myapp\repository\PostRepository.class
+myapp\config\DroolsConfig.class
+myapp\config\GlobalExceptionHandler.class
 myapp\service\UserService.class
+myapp\payload\CreatePostRequest.class
 myapp\controller\AuthController.class
 myapp\model\Post.class
 myapp\config\PasswordEncoderConfig.class

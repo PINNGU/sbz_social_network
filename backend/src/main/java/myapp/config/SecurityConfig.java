@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/register")).permitAll() // Explicitly permit registration
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/login")).permitAll() // Explicitly permit login
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**")).permitAll()
+                        .requestMatchers(AntPathRequestMatcher.antMatcher("/api/posts/**")).permitAll() // Allow all post endpoints for now
                         .requestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**")).permitAll()
                         .anyRequest().authenticated()
                 )

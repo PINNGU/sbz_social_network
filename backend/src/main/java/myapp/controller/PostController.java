@@ -73,18 +73,47 @@ public class PostController {
 
         // Drools session
         KieSession kieSession = kieContainer.newKieSession("ksession-rules");
-        kieSession.setGlobal("userIdToShow", userId);
         kieSession.insert(currentUser);
         List<Post> filteredPosts = new java.util.ArrayList<>();
+        java.util.Map<Long, String> postReasons = new java.util.HashMap<>();
         kieSession.setGlobal("filteredPosts", filteredPosts);
+        kieSession.setGlobal("postReasons", postReasons);
         for (Post post : candidates) {
+            System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + post.getNumberOfLikes() + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);
         }
         kieSession.fireAllRules();
         kieSession.dispose();
-        return ResponseEntity.ok(filteredPosts);
+        // Remove duplicates by post ID, keep highest priority reason
+        java.util.Map<Long, myapp.payload.PostWithReason> resultMap = new java.util.LinkedHashMap<>();
+        for (Post p : filteredPosts) {
+            String reason = postReasons.getOrDefault(p.getId(), "all");
+            if (!resultMap.containsKey(p.getId()) || isHigherPriority(reason, resultMap.get(p.getId()).getReason())) {
+                resultMap.put(p.getId(), new myapp.payload.PostWithReason(p, reason));
+            }
+        }
+        // Sort by dateOfCreation descending
+        java.util.List<myapp.payload.PostWithReason> result = new java.util.ArrayList<>(resultMap.values());
+        result.sort((a, b) -> b.getPost().getDateOfCreation().compareTo(a.getPost().getDateOfCreation()));
+        return ResponseEntity.ok(result);
+
     }
 
+    // Helper to compare reason priorities
+    private boolean isHigherPriority(String newReason, String oldReason) {
+        return getPriority(newReason) > getPriority(oldReason);
+    }
+
+    private static int getPriority(String r) {
+        switch (r) {
+            case "friend": return 5;
+            case "for_you": return 4;
+            case "popular": return 3;
+            case "suggested": return 2;
+            case "all": return 1;
+            default: return 0;
+        }
+    }
     // Like a post
     @PostMapping("/{postId}/like")
     public ResponseEntity<?> likePost(@PathVariable("postId") Long postId, @RequestParam("userId") Long userId) {
@@ -100,6 +129,4 @@ public class PostController {
         postService.savePost(post);
         return ResponseEntity.ok("Liked");
     }
-
-
 }

@@ -1,18 +1,53 @@
 package rules;
-
 import myapp.model.Post;
 import myapp.model.User;
-import java.time.LocalDateTime;
 
 global java.util.List filteredPosts;
-global Long userIdToShow;
+global java.util.Map postReasons;
 
-rule "Only show posts from friends and not older than a day"
+
+
+rule "Friend post"
+salience 100
 when
-    $post : Post($userId : user.id, $date : dateOfCreation)
-    $currentUser : User(id == userIdToShow)
-    eval($currentUser.getFriends().contains($userId))
-    eval($date.isAfter(java.time.LocalDateTime.now().minusDays(1)))
+    $currentUser : User($myId : id, $friends : friends)
+    $post : Post($userId : user.id, $date : dateOfCreation, $id : id)
+    eval(
+        $friends != null &&
+        !$myId.equals($userId) &&
+        $friends.contains($userId) &&
+        $date != null &&
+        $date.isAfter(java.time.LocalDateTime.now().minusDays(1))
+    )
 then
     filteredPosts.add($post);
+    postReasons.put($id, "friend:true");
 end
+
+
+
+rule "Popular post by likes"
+salience 50
+when
+    $post : Post($id : id, $date : dateOfCreation, $likes : numberOfLikes)
+    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 3)
+then
+    filteredPosts.add($post);
+    postReasons.put($id, "popular:true");
+end
+
+rule "Popular post by trending hashtag"
+salience 50
+when
+    $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
+    $hashtag : String() from $hashtags
+    $count : Number(intValue >= 5) from accumulate(
+        Post($d : dateOfCreation, $h : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null, hashtags contains $hashtag),
+        count(1)
+    )
+then
+    filteredPosts.add($post);
+    postReasons.put($id, "popular:true");
+end
+
+

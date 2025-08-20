@@ -15,5 +15,6 @@ myapp\controller\PostController.class
 myapp\repository\UserRepository.class
 myapp\config\SecurityConfig.class
 myapp\SocialNetwork.class
+myapp\payload\PostWithReason.class
 myapp\payload\AuthPayloads.class
 myapp\service\PostService.class

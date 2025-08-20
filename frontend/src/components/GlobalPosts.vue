@@ -6,21 +6,31 @@
     <div v-else>
       <div v-if="posts.length === 0" class="no-posts">No global posts to show.</div>
       <div class="posts-grid">
-        <div v-for="post in posts" :key="post.id" class="post-card">
+  <div v-for="postWithReason in posts" :key="postWithReason.post.id" :class="['post-card', { 'for-you': parseReason(postWithReason.reason).reason === 'for_you' }]">
           <div class="post-header">
-            <span class="post-date">{{ formatDate(post.dateOfCreation) }}</span>
-            <span class="post-user">by {{ post.user.name }} {{ post.user.surname }}</span>
+            <span class="post-date">{{ formatDate(postWithReason.post.dateOfCreation) }}</span>
+            <span class="post-user">by {{ postWithReason.post.user.name }} {{ postWithReason.post.user.surname }}</span>
           </div>
           <div class="post-body">
-            <p class="post-description">{{ post.description }}</p>
-            <div v-if="post.hashtags && post.hashtags.length" class="hashtags">
-              <span v-for="tag in post.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
+            <p class="post-description">{{ postWithReason.post.description }}</p>
+            <div v-if="postWithReason.post.hashtags && postWithReason.post.hashtags.length" class="hashtags">
+              <span v-for="tag in postWithReason.post.hashtags" :key="tag" class="hashtag">{{ tag }}</span>
             </div>
           </div>
           <div class="post-footer">
-            <span class="likes">👍 {{ post.numberOfLikes }}</span>
-            <button class="btn btn-sm btn-outline-primary ms-2" @click="likePost(post.id)" :disabled="liking[post.id]">Like</button>
-           
+            <span class="likes">👍 {{ postWithReason.post.numberOfLikes }}</span>
+            <button class="btn btn-sm btn-outline-primary ms-2" @click="likePost(postWithReason.post.id)" :disabled="liking[postWithReason.post.id]">Like</button>
+            <span class="reason-label" :class="{ 'for-you-label': parseReason(postWithReason.reason).reason === 'for_you' }">
+              <template v-if="parseReason(postWithReason.reason).reason === 'friend'">
+                <span class="friend-label">Friend</span>
+              </template>
+              <template v-else-if="parseReason(postWithReason.reason).reason === 'for_you'">
+                <span class="star">★</span> {{ reasonLabel(parseReason(postWithReason.reason).reason) }}
+              </template>
+              <template v-else>
+                {{ reasonLabel(parseReason(postWithReason.reason).reason) }}
+              </template>
+            </span>
           </div>
         </div>
       </div>
@@ -29,23 +39,15 @@
 </template>
 
 <script lang="ts">
+
 import { defineComponent, ref, onMounted } from 'vue';
 import axios from 'axios';
-
-interface Post {
-  id: number;
-  description: string;
-  hashtags: string[];
-  numberOfLikes: number;
-  reports: number[];
-  dateOfCreation: string;
-  user: { id: number; name: string; surname: string };
-}
+import type { PostWithReason } from '../types';
 
 export default defineComponent({
   name: 'GlobalPosts',
   setup() {
-    const posts = ref<Post[]>([]);
+  const posts = ref<PostWithReason[]>([]);
     const loading = ref(true);
     const error = ref('');
     const liking = ref<{ [key: number]: boolean }>({});
@@ -78,12 +80,29 @@ export default defineComponent({
         if (!userStr) throw new Error('User not logged in');
         const user = JSON.parse(userStr);
         await axios.post(`/api/posts/${postId}/like`, null, { params: { userId: user.id } });
-        const post = posts.value.find(p => p.id === postId);
-        if (post) post.numberOfLikes++;
+        const postWithReason = posts.value.find(pwr => pwr.post.id === postId);
+        if (postWithReason) postWithReason.post.numberOfLikes++;
       } catch (err) {
-        // Optionally show error
+        // handle error
       } finally {
         liking.value[postId] = false;
+      }
+    };
+
+    const parseReason = (reason: string) => {
+      // Format: reason:friends (e.g., 'friend:true', 'for_you:false')
+      const [r, f] = reason.split(":");
+      return { reason: r, friends: f === 'true' };
+    };
+
+    const reasonLabel = (reason: string) => {
+      switch (reason) {
+        case 'for_you': return 'For you';
+        case 'popular': return 'Popular';
+        case 'suggested': return 'Suggested';
+        case 'all': return 'Other';
+        case 'friend': return 'Friend';
+        default: return 'Other';
       }
     };
 
@@ -104,6 +123,8 @@ export default defineComponent({
       reported,
       likePost,
       formatDate,
+      reasonLabel,
+      parseReason,
     };
   },
 });
@@ -143,9 +164,14 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   transition: box-shadow 0.2s;
+  border-left: 6px solid transparent;
 }
 .post-card:hover {
   box-shadow: 0 4px 16px rgba(24,119,242,0.12);
+}
+.post-card.for-you {
+  border-left: 6px solid #FFD700;
+  background: #fffbe6;
 }
 .post-header {
   display: flex;
@@ -158,6 +184,33 @@ export default defineComponent({
   font-weight: bold;
   color: #1877f2;
 }
+
+.reason-label {
+  margin-left: auto;
+  font-weight: 500;
+  padding: 0.2rem 0.7rem;
+  border-radius: 12px;
+  background: #e7f3ff;
+  color: #1877f2;
+}
+.reason-label.for-you-label {
+  background: #FFD700;
+  color: #333;
+}
+.star {
+  color: #FFD700;
+  font-size: 1.1em;
+  margin-right: 0.2em;
+}
+.friend-label {
+  background: #4caf50;
+  color: #fff;
+  border-radius: 12px;
+  padding: 0.2rem 0.7rem;
+  margin-right: 0.5em;
+  font-weight: 600;
+}
+
 .post-body {
   flex: 1;
 }

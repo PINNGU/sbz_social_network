@@ -2,13 +2,15 @@ package myapp.payload;
 
 import myapp.model.Post;
 
+import java.util.Set;
+
 public class PostWithReason {
     private Post post;
-    private String reason;
+    private Set<String> reasons;
 
-    public PostWithReason(Post post, String reason) {
+    public PostWithReason(Post post, Set<String> reasons) {
         this.post = post;
-        this.reason = reason;
+        this.reasons = reasons;
     }
 
     public Post getPost() {
@@ -19,11 +21,11 @@ public class PostWithReason {
         this.post = post;
     }
 
-    public String getReason() {
-        return reason;
+    public Set<String> getReasons() {
+        return reasons;
     }
 
-    public void setReason(String reason) {
-        this.reason = reason;
+    public void setReasons(Set<String> reasons) {
+        this.reasons = reasons;
     }
 }

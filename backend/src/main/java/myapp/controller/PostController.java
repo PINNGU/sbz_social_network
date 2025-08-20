@@ -74,10 +74,10 @@ public class PostController {
         // Drools session
         KieSession kieSession = kieContainer.newKieSession("ksession-rules");
         kieSession.insert(currentUser);
-        List<Post> filteredPosts = new java.util.ArrayList<>();
-        java.util.Map<Long, String> postReasons = new java.util.HashMap<>();
-        kieSession.setGlobal("filteredPosts", filteredPosts);
-        kieSession.setGlobal("postReasons", postReasons);
+    List<Post> filteredPosts = new java.util.ArrayList<>();
+    java.util.Map<Long, java.util.Set<String>> postReasons = new java.util.HashMap<>();
+    kieSession.setGlobal("filteredPosts", filteredPosts);
+    kieSession.setGlobal("postReasons", postReasons);
         for (Post post : candidates) {
             System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + post.getNumberOfLikes() + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);
@@ -87,10 +87,8 @@ public class PostController {
         // Remove duplicates by post ID, keep highest priority reason
         java.util.Map<Long, myapp.payload.PostWithReason> resultMap = new java.util.LinkedHashMap<>();
         for (Post p : filteredPosts) {
-            String reason = postReasons.getOrDefault(p.getId(), "all");
-            if (!resultMap.containsKey(p.getId()) || isHigherPriority(reason, resultMap.get(p.getId()).getReason())) {
-                resultMap.put(p.getId(), new myapp.payload.PostWithReason(p, reason));
-            }
+            java.util.Set<String> reasons = postReasons.getOrDefault(p.getId(), java.util.Collections.emptySet());
+            resultMap.put(p.getId(), new myapp.payload.PostWithReason(p, reasons));
         }
         // Sort by dateOfCreation descending
         java.util.List<myapp.payload.PostWithReason> result = new java.util.ArrayList<>(resultMap.values());

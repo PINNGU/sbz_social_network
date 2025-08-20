@@ -21,23 +21,47 @@ when
     )
 then
     filteredPosts.add($post);
-    postReasons.put($id, "friend:true");
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend")) {
+        reasons.clear();
+        reasons.add("friend");
+    }
 end
 
 
-
-rule "Popular post by likes"
-salience 50
+rule "For you post"
+salience 60
 when
-    $post : Post($id : id, $date : dateOfCreation, $likes : numberOfLikes)
-    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 3)
+    $currentUser : User($myId : id)
+    $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
+    $hashtag : String() from $hashtags
+    $count : Number(intValue >= 5) from accumulate(
+        Post($d : dateOfCreation, $h : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null, hashtags contains $hashtag),
+        count(1)
+    )
+    Post($likedHashtags : hashtags, likes contains $myId, hashtags contains $hashtag)
 then
     filteredPosts.add($post);
-    postReasons.put($id, "popular:true");
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you")) {
+        reasons.clear();
+        reasons.add("for_you");
+    }
 end
 
+
+
+
+
+
 rule "Popular post by trending hashtag"
-salience 50
+salience 40
 when
     $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
     $hashtag : String() from $hashtags
@@ -45,9 +69,32 @@ when
         Post($d : dateOfCreation, $h : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null, hashtags contains $hashtag),
         count(1)
     )
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
 then
     filteredPosts.add($post);
-    postReasons.put($id, "popular:true");
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you") && !reasons.contains("popular")) {
+        reasons.clear();
+        reasons.add("popular");
+    }
 end
 
+rule "Popular post by likes"
+salience 70
+when
+    $post : Post($id : id, $date : dateOfCreation, $likes : numberOfLikes)
+    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 3)
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    ((java.util.Set)postReasons.get($id)).add("popular");
+end
 

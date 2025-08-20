@@ -11,5 +11,5 @@ export interface Post {
 
 export interface PostWithReason {
   post: Post;
-  reason: string;
+  reasons: string[];
 }

@@ -6,7 +6,7 @@
     <div v-else>
       <div v-if="posts.length === 0" class="no-posts">No global posts to show.</div>
       <div class="posts-grid">
-  <div v-for="postWithReason in posts" :key="postWithReason.post.id" :class="['post-card', { 'for-you': parseReason(postWithReason.reason).reason === 'for_you' }]">
+  <div v-for="postWithReason in posts" :key="postWithReason.post.id" :class="['post-card', { 'for-you': postWithReason.reasons.includes('for_you') }]">
           <div class="post-header">
             <span class="post-date">{{ formatDate(postWithReason.post.dateOfCreation) }}</span>
             <span class="post-user">by {{ postWithReason.post.user.name }} {{ postWithReason.post.user.surname }}</span>
@@ -20,15 +20,13 @@
           <div class="post-footer">
             <span class="likes">👍 {{ postWithReason.post.numberOfLikes }}</span>
             <button class="btn btn-sm btn-outline-primary ms-2" @click="likePost(postWithReason.post.id)" :disabled="liking[postWithReason.post.id]">Like</button>
-            <span class="reason-label" :class="{ 'for-you-label': parseReason(postWithReason.reason).reason === 'for_you' }">
-              <template v-if="parseReason(postWithReason.reason).reason === 'friend'">
-                <span class="friend-label">Friend</span>
-              </template>
-              <template v-else-if="parseReason(postWithReason.reason).reason === 'for_you'">
-                <span class="star">★</span> {{ reasonLabel(parseReason(postWithReason.reason).reason) }}
-              </template>
-              <template v-else>
-                {{ reasonLabel(parseReason(postWithReason.reason).reason) }}
+            <span class="reason-labels">
+              <template v-for="reason in postWithReason.reasons" :key="reason">
+                <span v-if="reason === 'friend'" class="friend-label">Friend</span>
+                <span v-else-if="reason === 'for_you'" class="for-you-label"><span class="star">★</span> For you</span>
+                <span v-else-if="reason === 'popular'" class="popular-label">Popular</span>
+                <span v-else-if="reason === 'popular_hashtag'" class="trending-label">Trending</span>
+                <span v-else class="other-label">{{ reasonLabel(reason) }}</span>
               </template>
             </span>
           </div>
@@ -198,7 +196,7 @@ export default defineComponent({
   color: #333;
 }
 .star {
-  color: #FFD700;
+  color: white;
   font-size: 1.1em;
   margin-right: 0.2em;
 }

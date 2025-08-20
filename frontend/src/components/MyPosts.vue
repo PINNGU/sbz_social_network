@@ -59,7 +59,9 @@ export default defineComponent({
         }
         const user = JSON.parse(userStr);
         const response = await axios.get(`/api/posts?userId=${user.id}`);
-        posts.value = response.data.filter((post: Post) => post.user && post.user.id === user.id);
+        posts.value = response.data
+          .filter((post: Post) => post.user && post.user.id === user.id)
+          .sort((a: Post, b: Post) => new Date(b.dateOfCreation).getTime() - new Date(a.dateOfCreation).getTime());
       } catch (err: any) {
         error.value = err.response?.data?.message || err.response?.data || 'Failed to fetch posts.';
       } finally {

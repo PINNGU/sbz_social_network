@@ -6,7 +6,7 @@
     <div v-else>
       <div v-if="posts.length === 0" class="no-posts">No global posts to show.</div>
       <div class="posts-grid">
-  <div v-for="postWithReason in posts" :key="postWithReason.post.id" :class="['post-card', { 'for-you': postWithReason.reasons.includes('for_you') }]">
+  <div v-for="postWithReason in posts" :key="postWithReason.post.id" :class="['post-card', { 'for-you': postWithReason.reasons.includes('for_you'), 'suggested': postWithReason.reasons.includes('suggested') }]">
           <div class="post-header">
             <span class="post-date">{{ formatDate(postWithReason.post.dateOfCreation) }}</span>
             <span class="post-user">by {{ postWithReason.post.user.name }} {{ postWithReason.post.user.surname }}</span>
@@ -24,6 +24,7 @@
               <template v-for="reason in postWithReason.reasons" :key="reason">
                 <span v-if="reason === 'friend'" class="friend-label">Friend</span>
                 <span v-else-if="reason === 'for_you'" class="for-you-label"><span class="star">★</span> For you</span>
+                <span v-else-if="reason === 'suggested'" class="suggested-label">Suggested</span>
                 <span v-else-if="reason === 'popular'" class="popular-label">Popular</span>
                 <span v-else-if="reason === 'popular_hashtag'" class="trending-label">Trending</span>
                 <span v-else class="other-label">{{ reasonLabel(reason) }}</span>
@@ -167,9 +168,24 @@ export default defineComponent({
 .post-card:hover {
   box-shadow: 0 4px 16px rgba(24,119,242,0.12);
 }
+
 .post-card.for-you {
   border-left: 6px solid #FFD700;
   background: #fffbe6;
+}
+
+.post-card.suggested {
+  border-left: 6px solid #7be495;
+  background: #eaffea;
+}
+
+.suggested-label {
+  background: #7be495;
+  color: #1b5e20;
+  border-radius: 12px;
+  padding: 0.2rem 0.7rem;
+  margin-right: 0.5em;
+  font-weight: 600;
 }
 .post-header {
   display: flex;

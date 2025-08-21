@@ -19,8 +19,22 @@
           </div>
           <div class="post-footer">
             <span class="likes">👍 {{ postWithReason.post.numberOfLikes }}</span>
-            <button class="btn btn-sm btn-outline-primary ms-2" @click="likePost(postWithReason.post.id)" :disabled="liking[postWithReason.post.id]">Like</button>
-            <span class="reason-labels">
+            <button
+              class="btn btn-sm ms-2"
+              :class="{
+                'btn-outline-primary': !hasLiked(postWithReason.post),
+                'btn-success liked-btn': hasLiked(postWithReason.post)
+              }"
+              @click="likePost(postWithReason.post.id)"
+              :disabled="liking[postWithReason.post.id] || hasLiked(postWithReason.post)"
+            >
+              <span v-if="hasLiked(postWithReason.post)"><i class="fa fa-thumbs-up"></i> Liked</span>
+              <span v-else>Like</span>
+            </button>
+
+
+
+            <span class="reason-labels right-align">
               <template v-for="reason in postWithReason.reasons" :key="reason">
                 <span v-if="reason === 'friend'" class="friend-label">Friend</span>
                 <span v-else-if="reason === 'for_you'" class="for-you-label"><span class="star">★</span> For you</span>
@@ -95,6 +109,9 @@ export default defineComponent({
     };
 
     const reasonLabel = (reason: string) => {
+      if (reason === 'Because you and others liked similar content' || reason.startsWith('brand_new_user')) {
+        return 'Because you and others liked similar content';
+      }
       switch (reason) {
         case 'for_you': return 'For you';
         case 'popular': return 'Popular';
@@ -105,7 +122,13 @@ export default defineComponent({
       }
     };
 
-   
+       // Check if the current user has liked the post
+    const hasLiked = (post: any) => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return false;
+      const user = JSON.parse(userStr);
+      return post.likes && post.likes.includes(user.id);
+    };
 
     const formatDate = (dateStr: string) => {
       const date = new Date(dateStr);
@@ -124,6 +147,7 @@ export default defineComponent({
       formatDate,
       reasonLabel,
       parseReason,
+  hasLiked: hasLiked,
     };
   },
 });
@@ -131,7 +155,7 @@ export default defineComponent({
 
 <style scoped>
 .dashboard-container {
-  max-width: 900px;
+  max-width: 1400px;
   margin: 2rem auto;
   padding: 2rem;
   background: #f0f2f5;
@@ -149,6 +173,13 @@ export default defineComponent({
   text-align: center;
   margin: 2rem 0;
   font-size: 1.2rem;
+}
+
+.btn.liked-btn {
+  background: #7be495;
+  color: #1b5e20;
+  border: 1px solid #7be495;
+  font-weight: 600;
 }
 .posts-grid {
   display: grid;
@@ -250,6 +281,12 @@ export default defineComponent({
   font-size: 0.95rem;
   color: #65676b;
   margin-top: 0.5rem;
+  justify-content: flex-start;
+}
+.reason-labels.right-align {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
 }
 .likes {
   display: flex;

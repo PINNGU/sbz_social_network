@@ -134,7 +134,7 @@ rule "Popular post by likes"
 salience 30
 when
     $post : Post($id : id, $date : dateOfCreation, $likes : numberOfLikes)
-    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 3)
+    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 5)
     eval(!filteredPosts.contains($post))
     eval(!postReasons.containsKey($id))
 then

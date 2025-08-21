@@ -5,6 +5,7 @@ import myapp.model.User;
 import myapp.repository.UserRepository;
 import myapp.service.PostService;
 import myapp.payload.CreatePostRequest;
+import myapp.util.RecommendationAgent;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import java.time.LocalDateTime;
@@ -17,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 
 
 @RestController
@@ -66,17 +68,21 @@ public class PostController {
             return ResponseEntity.badRequest().body("User not found");
         }
 
-    List<Post> allPosts = postService.getAllPosts();
-    // Insert ALL posts, including the current user's own posts
-    List<Post> candidates = allPosts;
+        List<Post> allPosts = postService.getAllPosts();
+        // Insert ALL posts, including the current user's own posts
+        List<Post> candidates = allPosts;
+
+        // Ensure RecommendationAgent has all users and posts for similarity calculations
+        RecommendationAgent.setAllUsers(userRepository.findAll());
+        RecommendationAgent.setAllPosts(allPosts);
 
         // Drools session
         KieSession kieSession = kieContainer.newKieSession("ksession-rules");
         kieSession.insert(currentUser);
-    List<Post> filteredPosts = new java.util.ArrayList<>();
-    java.util.Map<Long, java.util.Set<String>> postReasons = new java.util.HashMap<>();
-    kieSession.setGlobal("filteredPosts", filteredPosts);
-    kieSession.setGlobal("postReasons", postReasons);
+        List<Post> filteredPosts = new java.util.ArrayList<>();
+        java.util.Map<Long, java.util.Set<String>> postReasons = new java.util.HashMap<>();
+        kieSession.setGlobal("filteredPosts", filteredPosts);
+        kieSession.setGlobal("postReasons", postReasons);
         for (Post post : candidates) {
             System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + post.getNumberOfLikes() + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);

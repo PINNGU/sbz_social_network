@@ -65,11 +65,10 @@ public class PostController {
         if (currentUser == null) {
             return ResponseEntity.badRequest().body("User not found");
         }
-        List<Post> allPosts = postService.getAllPosts();
-        // Filter out user's own posts
-        List<Post> candidates = allPosts.stream()
-                .filter(p -> !p.getUser().getId().equals(userId))
-                .collect(Collectors.toList());
+
+    List<Post> allPosts = postService.getAllPosts();
+    // Insert ALL posts, including the current user's own posts
+    List<Post> candidates = allPosts;
 
         // Drools session
         KieSession kieSession = kieContainer.newKieSession("ksession-rules");
@@ -93,6 +92,10 @@ public class PostController {
         // Sort by dateOfCreation descending
         java.util.List<myapp.payload.PostWithReason> result = new java.util.ArrayList<>(resultMap.values());
         result.sort((a, b) -> b.getPost().getDateOfCreation().compareTo(a.getPost().getDateOfCreation()));
+        // Filter out the current user's own posts
+        result = result.stream()
+            .filter(pwr -> !pwr.getPost().getUser().getId().equals(currentUser.getId()))
+            .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(result);
 
     }

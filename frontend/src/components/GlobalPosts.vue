@@ -18,17 +18,17 @@
             </div>
           </div>
           <div class="post-footer">
-            <span class="likes">👍 {{ postWithReason.post.numberOfLikes }}</span>
+            <span class="likes">👍 {{ likesByPostId[postWithReason.post.id]?.length || 0 }}</span>
             <button
               class="btn btn-sm ms-2"
               :class="{
-                'btn-outline-primary': !hasLiked(postWithReason.post),
-                'btn-success liked-btn': hasLiked(postWithReason.post)
+                'btn-outline-primary': !hasLiked(postWithReason.post.id),
+                'btn-success liked-btn': hasLiked(postWithReason.post.id)
               }"
               @click="likePost(postWithReason.post.id)"
-              :disabled="liking[postWithReason.post.id] || hasLiked(postWithReason.post)"
+              :disabled="liking[postWithReason.post.id] || hasLiked(postWithReason.post.id)"
             >
-              <span v-if="hasLiked(postWithReason.post)"><i class="fa fa-thumbs-up"></i> Liked</span>
+              <span v-if="hasLiked(postWithReason.post.id)"><i class="fa fa-thumbs-up"></i> Liked</span>
               <span v-else>Like</span>
             </button>
 
@@ -41,6 +41,8 @@
                 <span v-else-if="reason === 'suggested'" class="suggested-label">Suggested</span>
                 <span v-else-if="reason === 'popular'" class="popular-label">Popular</span>
                 <span v-else-if="reason === 'popular_hashtag'" class="trending-label">Trending</span>
+                <span v-else-if="reason === 'similar_user'" class="similar-user-label">{{ reasonLabel(reason) }}</span>
+                <span v-else-if="reason === 'similar_content'" class="similar-content-label">{{ reasonLabel(reason) }}</span>
                 <span v-else class="other-label">{{ reasonLabel(reason) }}</span>
               </template>
             </span>
@@ -61,10 +63,11 @@ export default defineComponent({
   name: 'GlobalPosts',
   setup() {
   const posts = ref<PostWithReason[]>([]);
-    const loading = ref(true);
-    const error = ref('');
-    const liking = ref<{ [key: number]: boolean }>({});
-    const reported = ref<{ [key: number]: boolean }>({});
+  const loading = ref(true);
+  const error = ref('');
+  const liking = ref<{ [key: number]: boolean }>({});
+  const reported = ref<{ [key: number]: boolean }>({});
+  const likesByPostId = ref<{ [key: number]: number[] }>({});
 
     const fetchPosts = async () => {
       loading.value = true;
@@ -79,6 +82,17 @@ export default defineComponent({
         const user = JSON.parse(userStr);
         const response = await axios.get(`/api/posts/global?userId=${user.id}`);
         posts.value = response.data;
+        // Fetch likes for each post
+        const likePromises = posts.value.map(async (postWithReason) => {
+          const postId = postWithReason.post.id;
+          try {
+            const res = await axios.get(`/api/posts/${postId}/likes`);
+            likesByPostId.value[postId] = res.data;
+          } catch (e) {
+            likesByPostId.value[postId] = [];
+          }
+        });
+        await Promise.all(likePromises);
       } catch (err: any) {
         error.value = err.response?.data?.message || err.response?.data || 'Failed to fetch global posts.';
       } finally {
@@ -93,8 +107,9 @@ export default defineComponent({
         if (!userStr) throw new Error('User not logged in');
         const user = JSON.parse(userStr);
         await axios.post(`/api/posts/${postId}/like`, null, { params: { userId: user.id } });
-        const postWithReason = posts.value.find(pwr => pwr.post.id === postId);
-        if (postWithReason) postWithReason.post.numberOfLikes++;
+        // After liking, reload likes for this post only
+        const res = await axios.get(`/api/posts/${postId}/likes`);
+        likesByPostId.value[postId] = res.data;
       } catch (err) {
         // handle error
       } finally {
@@ -109,8 +124,11 @@ export default defineComponent({
     };
 
     const reasonLabel = (reason: string) => {
-      if (reason === 'Because you and others liked similar content' || reason.startsWith('brand_new_user')) {
+      if (reason === 'Because you and others liked similar content' || reason.startsWith('brand_new_user') || reason === 'similar_content') {
         return 'Because you and others liked similar content';
+      }
+      if (reason === 'similar_user') {
+        return 'Because similar users to you liked this post';
       }
       switch (reason) {
         case 'for_you': return 'For you';
@@ -122,12 +140,12 @@ export default defineComponent({
       }
     };
 
-       // Check if the current user has liked the post
-    const hasLiked = (post: any) => {
+    // Check if the current user has liked the post (using likesByPostId)
+    const hasLiked = (postId: number) => {
       const userStr = localStorage.getItem('user');
       if (!userStr) return false;
       const user = JSON.parse(userStr);
-      return post.likes && post.likes.includes(user.id);
+      return likesByPostId.value[postId] && likesByPostId.value[postId].includes(user.id);
     };
 
     const formatDate = (dateStr: string) => {
@@ -147,13 +165,24 @@ export default defineComponent({
       formatDate,
       reasonLabel,
       parseReason,
-  hasLiked: hasLiked,
+      hasLiked,
+      likesByPostId,
     };
   },
 });
 </script>
 
 <style scoped>
+.similar-user-label {
+  color: #d72660;
+  font-weight: 600;
+  margin-right: 0.5em;
+}
+.similar-content-label {
+  color: #4b145b;
+  font-weight: 600;
+  margin-right: 0.5em;
+}
 .dashboard-container {
   max-width: 1400px;
   margin: 2rem auto;

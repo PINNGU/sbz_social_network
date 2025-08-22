@@ -27,7 +27,6 @@ public class Post {
     @Column(nullable = false)
     private String description;
 
-    private int numberOfLikes = 0;
 
     @ElementCollection
     @CollectionTable(name = "post_hashtags", joinColumns = @JoinColumn(name = "post_id"))

@@ -4,6 +4,7 @@ C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\util\Reco
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\controller\PostController.java
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\config\CorsConfig.java
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\payload\PostWithReason.java
+C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\repository\LikeQueryRepository.java
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\payload\CreatePostRequest.java
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\model\Post.java
 C:\Users\Nikola\Desktop\sbz\social-network\backend\src\main\java\myapp\config\GlobalExceptionHandler.java

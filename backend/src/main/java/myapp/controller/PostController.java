@@ -1,3 +1,4 @@
+
 package myapp.controller;
 
 import myapp.model.Post;
@@ -8,32 +9,38 @@ import myapp.payload.CreatePostRequest;
 import myapp.util.RecommendationAgent;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
-import java.time.LocalDateTime;
+
 import java.util.List;
-import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+
 import org.springframework.web.bind.annotation.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 
 @RestController
 @RequestMapping("/api/posts")
 public class PostController {
-    private static final Logger logger = LoggerFactory.getLogger(PostController.class);
+    
+
 
     @Autowired
     private PostService postService;
+
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
     private KieContainer kieContainer;
+
+        // Get likes for a post directly from post_likes table
+    @GetMapping("/{postId}/likes")
+    public ResponseEntity<?> getLikesForPost(@PathVariable("postId") Long postId) {
+        List<Long> likerIds = postService.getLikerUserIdsByPostId(postId);
+        return ResponseEntity.ok(likerIds);
+    }
 
 
     // Optionally, add more endpoints for fetching posts, etc.
@@ -47,12 +54,12 @@ public class PostController {
         if (user == null) {
             return ResponseEntity.badRequest().body(null);
         }
-        Post post = new Post();
-        post.setDescription(req.getDescription());
-        post.setHashtags(req.getHashtags());
-        post.setUser(user);
-        Post savedPost = postService.savePost(post);
-        return ResponseEntity.ok(savedPost);
+    Post post = new Post();
+    post.setDescription(req.getDescription());
+    post.setHashtags(req.getHashtags());
+    post.setUser(user);
+    Post savedPost = postService.savePost(post);
+    return ResponseEntity.ok(savedPost);
     }
 
     @GetMapping("")
@@ -84,7 +91,7 @@ public class PostController {
         kieSession.setGlobal("filteredPosts", filteredPosts);
         kieSession.setGlobal("postReasons", postReasons);
         for (Post post : candidates) {
-            System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + post.getNumberOfLikes() + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
+            System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + (post.getLikes() != null ? post.getLikes().size() : 0) + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);
         }
         kieSession.fireAllRules();
@@ -106,21 +113,7 @@ public class PostController {
 
     }
 
-    // Helper to compare reason priorities
-    private boolean isHigherPriority(String newReason, String oldReason) {
-        return getPriority(newReason) > getPriority(oldReason);
-    }
 
-    private static int getPriority(String r) {
-        switch (r) {
-            case "friend": return 5;
-            case "for_you": return 4;
-            case "popular": return 3;
-            case "suggested": return 2;
-            case "all": return 1;
-            default: return 0;
-        }
-    }
     // Like a post
     @PostMapping("/{postId}/like")
     public ResponseEntity<?> likePost(@PathVariable("postId") Long postId, @RequestParam("userId") Long userId) {
@@ -131,9 +124,8 @@ public class PostController {
         if (post.getLikes().contains(userId)) {
             return ResponseEntity.badRequest().body("User already liked this post");
         }
-        post.getLikes().add(userId);
-        post.setNumberOfLikes(post.getNumberOfLikes() + 1);
-        postService.savePost(post);
-        return ResponseEntity.ok("Liked");
+    post.getLikes().add(userId);
+    postService.savePost(post);
+    return ResponseEntity.ok("Liked");
     }
 }

@@ -6,7 +6,7 @@ global java.util.List filteredPosts;
 global java.util.Map postReasons;
 
 
-
+//from friends
 rule "Friend post"
 salience 100
 when
@@ -34,7 +34,7 @@ end
 
 
 
-/* Suggested posts: posts with hashtags matching any liked post by the user */
+/* suggested by liking */
 rule "Suggested post (liked)"
 salience 59.5
 when
@@ -56,7 +56,7 @@ then
     }
 end
 
-/* Suggested posts: posts with hashtags matching any post created by the user */
+/* suggested by creaation  */
 rule "Suggested post (created)"
 salience 59
 when
@@ -78,7 +78,7 @@ then
     }
 end
 
-
+// liked + popular
 rule "For you post"
 salience 61
 when
@@ -133,8 +133,8 @@ end
 rule "Popular post by likes"
 salience 30
 when
-    $post : Post($id : id, $date : dateOfCreation, $likes : numberOfLikes)
-    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes >= 5)
+    $post : Post($id : id, $date : dateOfCreation, $likes : likes)
+    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes != null && $likes.size() >= 5)
     eval(!filteredPosts.contains($post))
     eval(!postReasons.containsKey($id))
 then

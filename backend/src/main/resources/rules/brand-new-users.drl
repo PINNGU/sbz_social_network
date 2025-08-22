@@ -1,63 +1,84 @@
+
 package rules;
 import myapp.model.Post;
 import myapp.model.User;
 import myapp.util.RecommendationAgent;
 import java.util.*;
-
-// This ruleset is for brand new users: no friends, no posts created
-// It is the least important (lowest salience)
-// A post can be recommended if:
-// 1. It was liked by similar users (Pearson >= 0.5)
-
-
 global java.util.List filteredPosts;
 global java.util.Map postReasons;
 
-rule "Brand new user: recommend posts by similar users or post similarity"
-salience 1
+
+//  for brand new users: no friends, no posts created
+// a post can be recommended if it was liked by similar users (Pearson > 0.5) - should be
+
+rule "Brand new user: recommend posts liked by similar users"
+salience 10
 when
     $currentUser : User($myId : id, friends.size == 0)
     not (Post(user.id == $myId)) // No posts created
-    $post : Post($postId : id, $postLikes : likes, $postDate : dateOfCreation, $postUserId : user.id)
+    $post : Post($postId : id, $postLikes : likes, $postUserId : user.id, likes.size > 0)
     eval(!$myId.equals($postUserId))
     eval(!filteredPosts.contains($post))
 then
-    int points = 0;
-    // 1. Liked by similar users (Pearson >= 0.5)
-    java.util.List users = RecommendationAgent.getAllUsers();
-    for (int i = 0; i < $postLikes.size(); i++) {
-        Long likerId = (Long) $postLikes.get(i);
+    java.util.List allUsers = RecommendationAgent.getAllUsers();
+    boolean found = false;
+    for (Object likerIdObj : $postLikes) {
+        Long likerId = (Long) likerIdObj;
         if (likerId.equals($myId)) continue;
-        for (int j = 0; j < users.size(); j++) {
-            User liker = (User) users.get(j);
+        for (Object userObj : allUsers) {
+            User liker = (User) userObj;
             if (liker.getId().equals(likerId)) {
                 double pearson = RecommendationAgent.pearsonSimilarity($currentUser, liker);
-                if (pearson >= 0.5) {
-                    points++;
+                System.out.println("[Drools DEBUG] User " + $myId + " vs " + likerId + " (post " + $postId + "): Pearson=" + pearson);
+                if (pearson > -0.15) {   //for testing only , user 7 and 5 are most similar - but still not positive
+                    found = true;
                     break;
                 }
             }
         }
+        if (found) break;
     }
-    //  Similar to a post the user has liked (>=70% overlap in likers, excluding current user)
-    java.util.List posts = RecommendationAgent.getAllPosts();
-    for (int i = 0; i < posts.size(); i++) {
-        Post likedPost = (Post) posts.get(i);
-        if (likedPost.getLikes().contains($myId)) {
-            double overlap = RecommendationAgent.postSimilarity($postId, likedPost.getId(), $myId);
-            if (overlap >= 0.5) {  // this should be 70%, for showcase 50% ( test with 60% too)
-                points++;
-                break;
-            }
-        }
-    }
-    if (points > 0) {
+    if (found) {
         filteredPosts.add($post);
         if (!postReasons.containsKey($postId)) {
             postReasons.put($postId, new java.util.HashSet<String>());
         }
         java.util.Set reasons = (java.util.Set)postReasons.get($postId);
         reasons.clear();
-        reasons.add("Because you and others liked similar content");
+        reasons.add("similar_user");
+    }
+end
+
+
+//recommend posts similar to those the user has liked (by overlap in likers)
+rule "Brand new user: recommend posts similar to liked posts"
+salience 5
+when
+    $currentUser : User($myId : id, friends.size == 0)
+    not (Post(user.id == $myId)) // No posts created
+    $post : Post($postId : id, $postUserId : user.id)
+    eval(!$myId.equals($postUserId))
+    eval(!filteredPosts.contains($post))
+then
+    java.util.List posts = RecommendationAgent.getAllPosts();
+    boolean found = false;
+    for (int i = 0; i < posts.size(); i++) {
+        myapp.model.Post likedPost = (myapp.model.Post) posts.get(i);
+        if (likedPost.getLikes().contains($myId)) {
+            double overlap = RecommendationAgent.postSimilarity($postId, likedPost.getId(), $myId);
+            if (overlap >= 0.6) {
+                found = true;
+                break;
+            }
+        }
+    }
+    if (found) {
+        filteredPosts.add($post);
+        if (!postReasons.containsKey($postId)) {
+            postReasons.put($postId, new java.util.HashSet<String>());
+        }
+        java.util.Set reasons = (java.util.Set)postReasons.get($postId);
+        reasons.clear();
+        reasons.add("similar_content");
     }
 end

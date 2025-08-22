@@ -4,6 +4,7 @@ myapp\payload\AuthPayloads$AuthResponse.class
 myapp\controller\AuthController.class
 myapp\model\Post.class
 myapp\controller\PostController.class
+myapp\repository\LikeQueryRepository.class
 myapp\payload\PostWithReason.class
 myapp\service\PostService.class
 myapp\model\Role.class

@@ -1,3 +1,4 @@
+
 package rules;
 import myapp.model.Post;
 import myapp.model.User;
@@ -6,11 +7,29 @@ global java.util.List filteredPosts;
 global java.util.Map postReasons;
 
 
+// MUST BE NOT NEW USER
+declare EligibleUser
+    id : Long
+end
+
+// Insert EligibleUser if user has at least one friend or at least one post
+rule "User eligible for global post rules"
+salience 200
+when
+    $user : User($myId : id, $friends : friends)
+    (eval($friends != null && !$friends.isEmpty())
+     or
+     Post(user.id == $myId))
+then
+    insertLogical(new EligibleUser($myId));
+end
+
 //from friends
 rule "Friend post"
 salience 100
 when
     $currentUser : User($myId : id, $friends : friends)
+    EligibleUser(id == $myId)
     $post : Post($userId : user.id, $date : dateOfCreation, $id : id)
     eval(
         $friends != null &&
@@ -39,6 +58,7 @@ rule "Suggested post (liked)"
 salience 59.5
 when
     $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
     $post : Post($id : id, $hashtags : hashtags, hashtags != null)
     $commonHashtag1 : String() from $hashtags
     Post(likes contains $myId, hashtags != null, hashtags contains $commonHashtag1)
@@ -61,6 +81,7 @@ rule "Suggested post (created)"
 salience 59
 when
     $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
     $post : Post($id : id, $hashtags : hashtags, hashtags != null)
     $commonHashtag2 : String() from $hashtags
     Post(user.id == $myId, hashtags != null, hashtags contains $commonHashtag2)
@@ -83,6 +104,7 @@ rule "For you post"
 salience 61
 when
     $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
     $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
     $hashtag : String() from $hashtags
     $count : Number(intValue >= 5) from accumulate(
@@ -104,7 +126,7 @@ end
 
 
 
-
+//populars are not required to be not new - makes more sense to me
 
 
 rule "Popular post by trending hashtag"

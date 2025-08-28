@@ -18,7 +18,7 @@ import myapp.model.PlaceRating;
 import myapp.service.PlaceRatingService;
 
 @RestController
-@RequestMapping("/api/placeRatingsS")
+@RequestMapping("/api/placeRating")
 public class PlaceRatingController 
 {
     @Autowired

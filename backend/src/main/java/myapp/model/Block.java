@@ -27,4 +27,28 @@ public class Block {
     @Column(name = "blocked_user_id")
     private Long blockedUserId;
 
+    // Getter and setter methods
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
+    }
+
+    public Long getBlockedUserId() {
+        return blockedUserId;
+    }
+
+    public void setBlockedUserId(Long blockedUserId) {
+        this.blockedUserId = blockedUserId;
+    }
 }

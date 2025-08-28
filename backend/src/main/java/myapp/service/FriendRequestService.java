@@ -20,12 +20,15 @@ public class FriendRequestService
 
     public void sendFriendRequest(Long senderId, Long receiverId) 
     {
-        FriendRequest friendRequest = new FriendRequest();
-        friendRequest.setSenderId(senderId);
-        friendRequest.setReceiverId(receiverId);
-        friendRequest.setStatus("PENDING");
-        friendRequest.setTimestamp(System.currentTimeMillis());
-        friendRequestRepository.save(friendRequest);
+        if(!friendRequestRepository.existsBySenderIdAndReceiverIdAndStatus(senderId, receiverId, "PENDING"))
+        {
+            FriendRequest friendRequest = new FriendRequest();
+            friendRequest.setSenderId(senderId);
+            friendRequest.setReceiverId(receiverId);
+            friendRequest.setStatus("PENDING");
+            friendRequest.setTimestamp(System.currentTimeMillis());
+            friendRequestRepository.save(friendRequest);
+        }
     }
 
     @Transactional
@@ -52,9 +55,23 @@ public class FriendRequestService
             friendRequestRepository.save(friendRequest);
         }
     }
-
+    @Transactional
+    public void deleteFriendRequest(Long userId, Long friendId) 
+    {
+        FriendRequest friendRequest = friendRequestRepository.findBySenderIdAndReceiverIdAndStatus(userId, friendId, "PENDING");
+        if (friendRequest != null) 
+        {
+            friendRequestRepository.delete(friendRequest);
+        }
+    }
+    
     public List<FriendRequest> getRequestsForUser(Long userId) 
     {
         return friendRequestRepository.findByReceiverId(userId);
+    }
+
+    public List<FriendRequest> getSentRequestsForUser(Long userId) 
+    {
+        return friendRequestRepository.findBySenderId(userId);
     }
 }

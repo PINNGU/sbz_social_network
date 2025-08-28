@@ -12,5 +12,17 @@ public interface FriendRequestRepository extends JpaRepository<myapp.model.Frien
 {
 
     List<FriendRequest> findByReceiverId(Long userId);
+
+    FriendRequest findBySenderIdAndReceiverId(Long userId, Long friendId);
+
+    boolean existsBySenderIdAndReceiverId(Long senderId, Long receiverId);
+
+    List<FriendRequest> findBySenderId(Long senderId);
+
+    boolean existsBySenderIdAndReceiverIdAndStatus(Long senderId, Long receiverId, String string);
+
+    FriendRequest findBySenderIdAndReceiverIdAndStatus(Long userId, Long friendId, String string);
+
+    void deleteBySenderIdAndReceiverIdAndStatus(Long userId, Long friendId, String string);
     
 }

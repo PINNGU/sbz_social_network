@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.RestController;
 import myapp.model.FriendRequest;
 import myapp.payload.FriendRequestDto;
 import myapp.service.FriendRequestService;
+
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -46,9 +48,22 @@ public class FriendRequestController
     }
     
     @GetMapping("/all")
-    public List<FriendRequest> getAllFriendRequests(@RequestParam Long userId) 
+    public List<FriendRequest> getAllFriendRequests(@RequestParam("userId") Long userId) 
     {
         return friendRequestService.getRequestsForUser(userId);
+    }
+    @GetMapping("/allSent")
+    public List<FriendRequest> getAllSentFriendRequests(@RequestParam("userId") Long userId) 
+    {
+        return friendRequestService.getSentRequestsForUser(userId);
+    }
+    
+    
+    @DeleteMapping("/delete")
+    public ResponseEntity<?> deleteFriendRequest(@RequestParam("userId") Long userId, @RequestParam("friendId") Long friendId) 
+    {
+        friendRequestService.deleteFriendRequest(userId, friendId);
+        return ResponseEntity.ok().build();
     }
     
 }

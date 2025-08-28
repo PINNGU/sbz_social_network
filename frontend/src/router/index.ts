@@ -5,6 +5,7 @@ import GlobalPosts from '../components/GlobalPosts.vue';
 import MyPosts from '../components/MyPosts.vue';
 import CreatePlace from '../components/CreatePlace.vue';
 import CreatePost from '../components/CreatePost.vue';
+import Friends from '../components/Friends.vue';
 
 import { isLoggedIn, getRole } from '../auth'; // Import auth functions
 
@@ -40,8 +41,13 @@ const routes = [
     name: 'CreatePost',
     component: CreatePost,
     meta: { requiresAuth: true } // Requires authentication
+  },
+  {
+    path: '/friends',
+    name: 'Friends',
+    component: Friends,
+    meta: { requiresAuth: true }
   }
-
 ];
 
 const router = createRouter({

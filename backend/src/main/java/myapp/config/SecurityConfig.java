@@ -51,6 +51,13 @@ public class SecurityConfig {
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/h2-console/**"))
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/auth/**"))
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/posts/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/friendRequest/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/users/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/friends/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/users/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/block/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/places/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/placeRating/**"))
         )
                 // No JWT or custom entry point needed
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

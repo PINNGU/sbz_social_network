@@ -58,6 +58,7 @@ public class SecurityConfig {
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/block/**"))
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/places/**"))
             .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/placeRating/**"))
+            .ignoringRequestMatchers(AntPathRequestMatcher.antMatcher("/api/ads/**"))
         )
                 // No JWT or custom entry point needed
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

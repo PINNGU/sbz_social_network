@@ -8,6 +8,7 @@ import myapp.util.RecommendationAgent;
 import java.util.*;
 global java.util.List filteredPosts;
 global java.util.Map postReasons;
+global java.util.Map friendsMap;
 
 
 //  for brand new users: no friends, no posts created
@@ -16,7 +17,9 @@ global java.util.Map postReasons;
 rule "Brand new user: recommend posts liked by similar users"
 salience 10
 when
-    $currentUser : User($myId : id, friends.size == 0)
+    $currentUser : User($myId : id)
+    // No friends -> check friendsMap empty or missing
+    eval( !friendsMap.containsKey($myId) || ((java.util.Set)friendsMap.get($myId)).isEmpty() )
     not (Post(user.id == $myId)) // No posts created
     $post : Post($postId : id, $postLikes : likes, $postUserId : user.id, likes.size > 0)
     eval(!$myId.equals($postUserId))
@@ -64,7 +67,9 @@ end
 rule "Brand new user: suggest post by hashtag activity"
 salience 7
 when
-    $currentUser : User($myId : id, friends.size == 0)
+    $currentUser : User($myId : id)
+    // No friends -> check friendsMap empty or missing
+    eval( !friendsMap.containsKey($myId) || ((java.util.Set)friendsMap.get($myId)).isEmpty() )
     not (Post(user.id == $myId)) // No posts created
     $post : Post($postId : id, $hashtags : hashtags, $postUserId : user.id, hashtags != null)
     eval(!$myId.equals($postUserId))
@@ -107,7 +112,9 @@ end
 rule "Brand new user: recommend posts similar to liked posts"
 salience 5
 when
-    $currentUser : User($myId : id, friends.size == 0)
+    $currentUser : User($myId : id)
+    // No friends -> check friendsMap empty or missing
+    eval( !friendsMap.containsKey($myId) || ((java.util.Set)friendsMap.get($myId)).isEmpty() )
     not (Post(user.id == $myId)) // No posts created
     $post : Post($postId : id, $postUserId : user.id)
     eval(!$myId.equals($postUserId))
@@ -142,7 +149,9 @@ end
 rule "Brand new user: show liked posts"
 salience 1
 when
-    $currentUser : User($myId : id, friends.size == 0)
+    $currentUser : User($myId : id)
+    // No friends -> check friendsMap empty or missing
+    eval( !friendsMap.containsKey($myId) || ((java.util.Set)friendsMap.get($myId)).isEmpty() )
     not (Post(user.id == $myId)) // No posts created
     $post : Post($postId : id, likes contains $myId)
     eval(!filteredPosts.contains($post))

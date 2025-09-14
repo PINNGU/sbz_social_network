@@ -25,7 +25,7 @@ public class PlaceRatingController
     private PlaceRatingService placeRatingService;
 
     @GetMapping("/all")
-    public ResponseEntity<List<PlaceRating>> getPlaceRatings(@RequestParam Long placeId) 
+    public ResponseEntity<List<PlaceRating>> getPlaceRatings(@RequestParam("placeId") Long placeId) 
     {
         List<PlaceRating> placeRatings = placeRatingService.getPlaceRatings(placeId);
         return ResponseEntity.ok(placeRatings);
@@ -44,7 +44,7 @@ public class PlaceRatingController
         return ResponseEntity.ok().build();
     }
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deletePlaceRating(@RequestParam Long userId, @RequestParam Long placeId) 
+    public ResponseEntity<Void> deletePlaceRating(@RequestParam("userId") Long userId, @RequestParam("placeId") Long placeId) 
     {
         placeRatingService.deletePlaceRating(userId, placeId);
         return ResponseEntity.ok().build();

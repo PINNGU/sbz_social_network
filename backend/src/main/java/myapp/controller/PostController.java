@@ -1,10 +1,10 @@
-
 package myapp.controller;
 
 import myapp.model.Post;
 import myapp.model.User;
 import myapp.repository.UserRepository;
 import myapp.service.PostService;
+import myapp.service.FriendsService;
 import myapp.payload.CreatePostRequest;
 import myapp.util.RecommendationAgent;
 import org.kie.api.runtime.KieContainer;
@@ -34,6 +34,9 @@ public class PostController {
 
     @Autowired
     private KieContainer kieContainer;
+
+    @Autowired
+    private FriendsService friendsService;
 
         // Get likes for a post directly from post_likes table
     @GetMapping("/{postId}/likes")
@@ -76,26 +79,63 @@ public class PostController {
         }
 
         List<Post> allPosts = postService.getAllPosts();
-        // Insert ALL posts, including the current user's own posts
         List<Post> candidates = allPosts;
 
-        // Ensure RecommendationAgent has all users and posts for similarity calculations
         RecommendationAgent.setAllUsers(userRepository.findAll());
         RecommendationAgent.setAllPosts(allPosts);
 
         // Drools session
         KieSession kieSession = kieContainer.newKieSession("ksession-rules");
         kieSession.insert(currentUser);
+
+        // Build friends map from FriendsService (userId -> Set<friendId>)
+        java.util.Map<Long, java.util.Set<Long>> friendsMap = new java.util.HashMap<>();
+        for (myapp.model.User u : userRepository.findAll()) {
+            java.util.List<myapp.model.User> friendsList = friendsService.getFriendsByUserId(u.getId());
+            java.util.Set<Long> set = new java.util.HashSet<>();
+            for (myapp.model.User f : friendsList) {
+                if (f != null && f.getId() != null) set.add(f.getId());
+            }
+            friendsMap.put(u.getId(), set);
+        }
+
+        // DEBUG: print friendsMap entry for current user to verify mapping and types
+        try {
+            System.out.println("DEBUG friendsMap entry for currentUser " + currentUser.getId() + " -> " + friendsMap.get(currentUser.getId()));
+        } catch (Exception e) {
+            System.out.println("DEBUG friendsMap print error: " + e.getMessage());
+        }
+
         List<Post> filteredPosts = new java.util.ArrayList<>();
         java.util.Map<Long, java.util.Set<String>> postReasons = new java.util.HashMap<>();
+
+        // DEBUG: print KieBase / KiePackage globals to verify which globals are declared
+        try {
+            org.kie.api.KieBase kb = kieSession.getKieBase();
+            for (org.kie.api.definition.KiePackage kp : kb.getKiePackages()) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("KIE PACKAGE: ").append(kp.getName()).append(" rules=[");
+                for (org.kie.api.definition.rule.Rule r : kp.getRules()) {
+                    sb.append(r.getName()).append(",");
+                }
+                sb.append("]");
+                System.out.println(sb.toString());
+            }
+        } catch (Exception e) {
+            System.out.println("DEBUG: error printing KieBase globals: " + e.getMessage());
+        }
+
         kieSession.setGlobal("filteredPosts", filteredPosts);
         kieSession.setGlobal("postReasons", postReasons);
+        kieSession.setGlobal("friendsMap", friendsMap);
+
         for (Post post : candidates) {
             System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + (post.getLikes() != null ? post.getLikes().size() : 0) + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);
         }
         kieSession.fireAllRules();
         kieSession.dispose();
+
         // Remove duplicates by post ID, keep highest priority reason
         java.util.Map<Long, myapp.payload.PostWithReason> resultMap = new java.util.LinkedHashMap<>();
         for (Post p : filteredPosts) {
@@ -127,5 +167,21 @@ public class PostController {
     post.getLikes().add(userId);
     postService.savePost(post);
     return ResponseEntity.ok("Liked");
+    }
+    @PostMapping("/{postId}/report")
+    public ResponseEntity<?> reportPost(@PathVariable("postId") Long postId, @RequestParam("userId") Long userId) 
+    {
+        Post post = postService.getPostById(postId);
+        if (post == null) 
+        {
+            return ResponseEntity.badRequest().body("Post not found");
+        }
+        if (post.getReports().contains(userId)) 
+        {
+            return ResponseEntity.badRequest().body("User already reported this post");
+        }
+        post.getReports().add(userId);
+        postService.savePost(post);
+        return ResponseEntity.ok("Reported");
     }
 }

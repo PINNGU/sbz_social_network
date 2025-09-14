@@ -16,11 +16,14 @@
             <li class="nav-item" v-if="isLoggedIn && isRegular">
                 <router-link class="nav-link" to="/create-post">Create Post</router-link>
               </li>
-            <li class="nav-item" v-if="isLoggedIn && isRegular">
+            <li class="nav-item" v-if="isLoggedIn && (isRegular || isAdmin)">
                 <router-link class="nav-link" to="/friends">Friends</router-link>
               </li>
             <li class="nav-item" v-if="isLoggedIn && isAdmin">
               <router-link class="nav-link" to="/create-place">Create Place</router-link>
+            </li>
+            <li class="nav-item" v-if="isLoggedIn && (isRegular || isAdmin)">
+              <router-link class="nav-link" to="/places">Places</router-link>
             </li>
           </ul>
           

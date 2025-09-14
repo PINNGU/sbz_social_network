@@ -5,21 +5,61 @@ import myapp.model.User;
 
 global java.util.List filteredPosts;
 global java.util.Map postReasons;
+global java.util.Map friendsMap;
 
+// DEBUG: print friendsMap info and per-post friend checks
+rule "DEBUG friendsMap overview"
+salience 1000
+when
+    $u : User($uid : id)
+then
+    try {
+        System.out.println("[DRL DEBUG] friendsMap keys: " + (friendsMap == null ? "null" : friendsMap.keySet()));
+        System.out.println("[DRL DEBUG] friendsMap for user " + $uid + " -> " + (friendsMap == null ? "null" : friendsMap.get($uid)));
+    } catch (Exception e) {
+        System.out.println("[DRL DEBUG] error printing friendsMap: " + e.getMessage());
+    }
+end
+
+rule "DEBUG per-post friend check"
+salience 999
+when
+    $currentUser : User($myId : id)
+    $post : Post($postId : id, $authorId : user.id)
+then
+    try {
+        java.util.Set authorSet = null;
+        if (friendsMap != null && friendsMap.containsKey($myId)) {
+            Object obj = friendsMap.get($myId);
+            if (obj instanceof java.util.Set) authorSet = (java.util.Set) obj;
+        }
+        System.out.println("[DRL DEBUG] user " + $myId + " checking post " + $postId + " author " + $authorId + " authorSet=" + authorSet + " isFriend=" + (authorSet != null && authorSet.contains($authorId)) + " date=" + $post.getDateOfCreation());
+    } catch (Exception e) {
+        System.out.println("[DRL DEBUG] error in per-post debug: " + e.getMessage());
+    }
+end
 
 // MUST BE NOT NEW USER
 declare EligibleUser
     id : Long
 end
 
-// Insert EligibleUser if user has at least one friend or at least one post
-rule "User eligible for global post rules"
+// Insert EligibleUser if user has at least one friend
+rule "User eligible by having friends"
 salience 200
 when
-    $user : User($myId : id, $friends : friends)
-    (eval($friends != null && !$friends.isEmpty())
-     or
-     Post(user.id == $myId))
+    $user : User($myId : id)
+    eval( friendsMap != null && friendsMap.containsKey($myId) && !((java.util.Set)friendsMap.get($myId)).isEmpty() )
+then
+    insertLogical(new EligibleUser($myId));
+end
+
+// Insert EligibleUser if user has at least one post (exists pattern)
+rule "User eligible by having posts"
+salience 199
+when
+    $user : User($myId : id)
+    exists Post(user.id == $myId)
 then
     insertLogical(new EligibleUser($myId));
 end
@@ -28,13 +68,13 @@ end
 rule "Friend post"
 salience 100
 when
-    $currentUser : User($myId : id, $friends : friends)
+    $currentUser : User($myId : id)
     EligibleUser(id == $myId)
     $post : Post($userId : user.id, $date : dateOfCreation, $id : id)
     eval(
-        $friends != null &&
+        friendsMap.containsKey($myId) &&
         !$myId.equals($userId) &&
-        $friends.contains($userId) &&
+        ((java.util.Set)friendsMap.get($myId)).contains($userId) &&
         $date != null &&
         $date.isAfter(java.time.LocalDateTime.now().minusDays(1))
     )

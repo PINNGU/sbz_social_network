@@ -32,6 +32,22 @@
               <span v-else>Like</span>
             </button>
 
+            <!-- Report area: show button if reportable, otherwise show 'Reported' label when user has already reported -->
+            <div class="report-area">
+              <button
+                v-if="canReport(postWithReason.post)"
+                class="btn btn-sm ms-2 btn-outline-danger report-btn"
+                @click="reportPost(postWithReason.post.id)"
+                :disabled="reported[postWithReason.post.id]"
+                title="Report post"
+              >
+                <span v-if="reported[postWithReason.post.id]"><i class="fa fa-flag"></i> Reported</span>
+                <span v-else><i class="fa fa-flag"></i> Report</span>
+              </button>
+
+              <span v-else-if="hasReported(postWithReason.post)" class="reported-label">Reported</span>
+            </div>
+
 
 
             <span class="reason-labels right-align">
@@ -117,6 +133,44 @@ export default defineComponent({
       }
     };
 
+    const reportPost = async (postId: number) => {
+      try {
+        const userStr = localStorage.getItem('user');
+        if (!userStr) throw new Error('User not logged in');
+        const user = JSON.parse(userStr);
+        reported.value[postId] = true;
+        await axios.post(`/api/posts/${postId}/report`, null, { params: { userId: user.id } });
+        // update local posts array to include this reporter so UI reflects it
+        const pwr = posts.value.find(p => p.post.id === postId);
+        if (pwr) {
+          if (!pwr.post.reports) pwr.post.reports = [];
+          if (!pwr.post.reports.includes(user.id)) pwr.post.reports.push(user.id);
+        }
+      } catch (err: any) {
+        reported.value[postId] = false;
+        // show error briefly
+        error.value = err.response?.data || err.message || 'Failed to report post.';
+        setTimeout(() => { error.value = ''; }, 3000);
+      }
+    };
+
+    const canReport = (post: any) => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return false;
+      const user = JSON.parse(userStr);
+      if (!post || !post.user) return false;
+      if (post.user.id === user.id) return false; // don't allow reporting own posts
+      if (post.reports && post.reports.includes(user.id)) return false; // already reported
+      return true;
+    };
+
+    const hasReported = (post: any) => {
+      const userStr = localStorage.getItem('user');
+      if (!userStr) return false;
+      const user = JSON.parse(userStr);
+      return post?.reports && post.reports.includes(user.id);
+    };
+
     const parseReason = (reason: string) => {
       // Format: reason:friends (e.g., 'friend:true', 'for_you:false')
       const [r, f] = reason.split(":");
@@ -162,6 +216,9 @@ export default defineComponent({
       liking,
       reported,
       likePost,
+      reportPost,
+      canReport,
+      hasReported,
       formatDate,
       reasonLabel,
       parseReason,
@@ -324,5 +381,13 @@ export default defineComponent({
 .reports {
   display: flex;
   align-items: center;
+}
+.reported-label {
+  background: #f5c6cb;
+  color: #721c24;
+  padding: 0.25rem 0.6rem;
+  border-radius: 12px;
+  font-weight: 600;
+  margin-left: 0.5rem;
 }
 </style>

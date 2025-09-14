@@ -23,6 +23,8 @@ public class Place {
 
     @Column(name = "name")
     private String name;
+    @Column(name = "type")
+    private String type;
     @Column(name = "country")
     private String country;
     @Column(name = "town")  

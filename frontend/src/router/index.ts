@@ -7,6 +7,7 @@ import CreatePlace from '../components/CreatePlace.vue';
 import CreatePost from '../components/CreatePost.vue';
 import Friends from '../components/Friends.vue';
 import Places from '../components/Places.vue';
+import AdminDashboard from '../components/AdminDashboard.vue';
 
 import { isLoggedIn, getRole } from '../auth'; // Import auth functions
 
@@ -60,6 +61,12 @@ const routes = [
     name: 'Friends',
     component: Friends,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, requiredRole: 'ADMIN' }
   }
 ];
 

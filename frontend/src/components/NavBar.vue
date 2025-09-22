@@ -22,6 +22,11 @@
             <li class="nav-item" v-if="isLoggedIn && isAdmin">
               <router-link class="nav-link" to="/create-place">Create Place</router-link>
             </li>
+            <li class="nav-item" v-if="isLoggedIn && isAdmin">
+              <router-link class="nav-link admin-link" to="/admin">
+                <i class="fas fa-shield-alt"></i> Admin Dashboard
+              </router-link>
+            </li>
             <li class="nav-item" v-if="isLoggedIn && (isRegular || isAdmin)">
               <router-link class="nav-link" to="/places">Places</router-link>
             </li>
@@ -91,5 +96,18 @@
   </script>
   
   <style scoped>
-  /* No specific styles needed yet, Bootstrap handles most */
+  /* Admin link styling */
+  .admin-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+  }
+  
+  .admin-link:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  .admin-link i {
+    margin-right: 6px;
+  }
   </style>

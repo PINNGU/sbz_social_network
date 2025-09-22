@@ -5,6 +5,7 @@ import myapp.model.User;
 import myapp.repository.UserRepository;
 import myapp.service.PostService;
 import myapp.service.FriendsService;
+import myapp.service.BadUserDetectionService;
 import myapp.payload.CreatePostRequest;
 import myapp.util.RecommendationAgent;
 import org.kie.api.runtime.KieContainer;
@@ -38,6 +39,9 @@ public class PostController {
     @Autowired
     private FriendsService friendsService;
 
+    @Autowired
+    private BadUserDetectionService badUserDetectionService;
+
         // Get likes for a post directly from post_likes table
     @GetMapping("/{postId}/likes")
     public ResponseEntity<?> getLikesForPost(@PathVariable("postId") Long postId) {
@@ -57,12 +61,18 @@ public class PostController {
         if (user == null) {
             return ResponseEntity.badRequest().body(null);
         }
-    Post post = new Post();
-    post.setDescription(req.getDescription());
-    post.setHashtags(req.getHashtags());
-    post.setUser(user);
-    Post savedPost = postService.savePost(post);
-    return ResponseEntity.ok(savedPost);
+        
+        if (!user.canPostContent()) 
+        {
+            return ResponseEntity.status(403).body(null); 
+        }
+        
+        Post post = new Post();
+        post.setDescription(req.getDescription());
+        post.setHashtags(req.getHashtags());
+        post.setUser(user);
+        Post savedPost = postService.savePost(post);
+        return ResponseEntity.ok(savedPost);
     }
 
     @GetMapping("")
@@ -182,6 +192,17 @@ public class PostController {
         }
         post.getReports().add(userId);
         postService.savePost(post);
+        
+        try 
+        {
+            User postOwner = post.getUser();
+            badUserDetectionService.analyzeUser(postOwner);
+            System.out.println("Detekcija pokrenuta za korisnika: " + postOwner.getEmail() + " nakon prijave objave");
+        } catch (Exception e) 
+        {
+            System.err.println("Greška tokom detekcije nakon prijave objave: " + e.getMessage());
+        }
+        
         return ResponseEntity.ok("Reported");
     }
 }

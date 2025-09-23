@@ -2,6 +2,7 @@ package myapp.service;
 
 import myapp.model.Block;
 import myapp.model.Post;
+import myapp.model.PostReport;
 import myapp.model.User;
 import myapp.payload.BadUserDetection;
 import myapp.payload.Suspension;
@@ -37,7 +38,7 @@ public class BadUserDetectionService {
     @Autowired
     private BlockRepository blockRepository;
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<BadUserDetection> detectBadUsers() 
     {
         List<User> allUsers = userRepository.findAll();
@@ -55,7 +56,7 @@ public class BadUserDetectionService {
         return suspiciousUsers;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public BadUserDetection analyzeUser(User user) 
     {
         List<UserActivity> activities = collectUserActivities(user);
@@ -78,7 +79,10 @@ public class BadUserDetectionService {
 
             // Pokreni samo "bad-users" pravila
             kieSession.getAgenda().getAgendaGroup("bad-users").setFocus();
-            kieSession.fireAllRules();
+            int rulesFired = kieSession.fireAllRules();
+            
+            System.out.println("DEBUG: Pokrenuto je " + rulesFired + " pravila za korisnika " + user.getEmail());
+            System.out.println("DEBUG: Kreiran je " + suspensions.size() + " broj suspenzija");
 
             // Primeni suspenzije
             applySuspensions(suspensions);
@@ -94,20 +98,32 @@ public class BadUserDetectionService {
         List<UserActivity> activities = new ArrayList<>();
         LocalDateTime now = LocalDateTime.now();
 
+        System.out.println("DEBUG: collectUserActivities za korisnika " + user.getEmail() + " (ID: " + user.getId() + ")");
+
         // Aktivnosti prijavljivanja objava
         List<Post> userPosts = postRepository.findByUserId(user.getId());
+        System.out.println("DEBUG: Pronadjeno " + userPosts.size() + " postova za korisnika");
+        
         for (Post post : userPosts) 
         {
-            Long reportCount = postRepository.countReportsByPostId(post.getId());
-            int count = reportCount != null ? reportCount.intValue() : 0;
-            for (int i = 0; i < count; i++) 
+            System.out.println("DEBUG: Post ID " + post.getId() + " ima " + post.getReports().size() + " prijava");
+            // Za svaku prijavu posta, kreiraj aktivnost sa pravim timestamp-om
+            for (PostReport report : post.getReports()) 
             {
+                // Koristimo timestamp prijave ili datum kreiranja posta kao fallback
+                LocalDateTime reportTime = report.getReportTimestamp() != null 
+                    ? report.getReportTimestamp() 
+                    : post.getDateOfCreation();
+                    
+                System.out.println("DEBUG: Kreiram UserActivity - reporterUserId: " + report.getReporterUserId() + 
+                                 ", reportTime: " + reportTime + ", targetUserId: " + user.getId());
+                    
                 UserActivity activity = new UserActivity(
-                    user.getId(),
+                    report.getReporterUserId(), // Ko je prijavio
                     "POST_REPORTED",
-                    post.getDateOfCreation(), // Koristimo datum kreiranja posta kao aproksimaciju
+                    reportTime, // Koristi pravi timestamp prijave ili fallback
                     "Objava prijavljena",
-                    post.getId()
+                    user.getId() // Vlasnik posta je target
                 );
                 activities.add(activity);
             }
@@ -162,16 +178,28 @@ public class BadUserDetectionService {
             }
         }
 
+        System.out.println("DEBUG: Ukupno kreirano " + activities.size() + " UserActivity objekata");
+        for (UserActivity activity : activities) {
+            System.out.println("DEBUG: Activity - userId: " + activity.getUserId() + 
+                             ", type: " + activity.getActivityType() + 
+                             ", time: " + activity.getTimestamp() + 
+                             ", targetId: " + activity.getTargetId());
+        }
+
         return activities;
     }
 
+    @Transactional
     private void applySuspensions(List<Suspension> suspensions) 
     {
+        //System.out.println("DEBUG: applySuspensions pozvan sa " + suspensions.size() + " suspenzija");
         for (Suspension suspension : suspensions) 
         {
+            //System.out.println("DEBUG: Obradjujem suspenziju za userId: " + suspension.getUserId());
             User user = userRepository.findById(suspension.getUserId()).orElse(null);
             if (user != null) 
             {
+                //System.out.println("DEBUG: Korisnik pronadjen: " + user.getEmail());
                 if(user.getSuspendedUntil() != null && user.getSuspendedUntil().isAfter(LocalDateTime.now())) 
                 {
                     if(suspension.getSuspensionEnd().isAfter(user.getSuspendedUntil())) 
@@ -183,8 +211,10 @@ public class BadUserDetectionService {
                 {
                     user.setSuspendedUntil(suspension.getSuspensionEnd());
                 }
-                //user.setSuspendedUntil(suspension.getSuspensionEnd());
                 user.setSuspensionReason(suspension.getReason());
+                
+                //System.out.println("DEBUG: Postavljam suspendedUntil: " + suspension.getSuspensionEnd());
+                //System.out.println("DEBUG: Postavljam suspensionReason: " + suspension.getReason());
                 
                 switch (suspension.getSuspensionType()) 
                 {
@@ -201,11 +231,25 @@ public class BadUserDetectionService {
                 }
                 
                 userRepository.save(user);
+                userRepository.flush(); // Forsiraj flush u bazu
+                //System.out.println("DEBUG: Korisnik snimljen u bazu");
+                
+                // Proveri da li su se promena perzistirale
+                User verifyUser = userRepository.findById(suspension.getUserId()).orElse(null);
+                if (verifyUser != null) {
+                    //System.out.println("DEBUG: VERIFIKACIJA - can_post: " + verifyUser.getCanPost());
+                    //System.out.println("DEBUG: VERIFIKACIJA - suspended_until: " + verifyUser.getSuspendedUntil());
+                    //System.out.println("DEBUG: VERIFIKACIJA - suspension_reason: " + verifyUser.getSuspensionReason());
+                } else {
+                    //System.out.println("DEBUG: GREŠKA - ne mogu da učitam korisnika posle save!");
+                }
                 
                 System.out.println("Suspenzija primenjena na korisnika: " + user.getEmail() + 
                                  " - Tip: " + suspension.getSuspensionType() + 
                                  " - Do: " + suspension.getSuspensionEnd() +
                                  " - Razlog: " + suspension.getReason());
+            } else {
+                System.out.println("DEBUG: Korisnik sa ID " + suspension.getUserId() + " nije pronadjen");
             }
         }
     }
@@ -235,7 +279,7 @@ public class BadUserDetectionService {
                 userRepository.save(user);
                 clearedCount++;
                 
-                System.out.println("Očišćena suspenzija za korisnika: " + user.getEmail());
+                System.out.println("Ociscena suspenzija za korisnika: " + user.getEmail());
             }
         }
         

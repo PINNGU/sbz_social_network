@@ -8,6 +8,7 @@ import myapp.service.FriendsService;
 import myapp.service.BadUserDetectionService;
 import myapp.payload.CreatePostRequest;
 import myapp.util.RecommendationAgent;
+import java.time.LocalDateTime;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 
@@ -187,11 +188,11 @@ public class PostController {
         {
             return ResponseEntity.badRequest().body("Post not found");
         }
-        if (post.getReports().contains(userId)) 
+        if (post.isReportedBy(userId)) 
         {
             return ResponseEntity.badRequest().body("User already reported this post");
         }
-        post.getReports().add(userId);
+        post.addReport(userId, LocalDateTime.now());
         postService.savePost(post);
         
         try 

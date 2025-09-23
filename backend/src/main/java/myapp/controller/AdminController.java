@@ -79,7 +79,7 @@ public class AdminController {
      */
     @PostMapping("/analyze-user/{userId}")
     // @PreAuthorize("hasRole('ADMIN')") // Temporarily disabled for testing
-    public ResponseEntity<?> analyzeSpecificUser(@PathVariable Long userId) {
+    public ResponseEntity<?> analyzeSpecificUser(@PathVariable("userId") Long userId) {
         try {
             // Temporarily skip admin check for testing
             Optional<User> targetUserOpt = userRepository.findById(userId);

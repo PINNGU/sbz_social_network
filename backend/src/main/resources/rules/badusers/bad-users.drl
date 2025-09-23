@@ -16,15 +16,16 @@ agenda-group "bad-users"
         $detection : BadUserDetection($user : user, $activities : activities)
         $reportCount : Number(intValue >= 5) from accumulate(
             UserActivity(
-                userId == $user.id,
+                targetId == $user.id,
                 activityType == "POST_REPORTED",
                 timestamp.isAfter(LocalDateTime.now().minusDays(1))
             ) from $activities,
             count(1)
         )
     then
+        System.out.println("DROOLS DEBUG: Pravilo pokrenuto za korisnika " + $user.getEmail() + " sa " + $reportCount + " prijava");
         $detection.setSuspicious(true);
-        $detection.setSuspicionReason("Više od 5 prijavljenih objava u jednom danu");
+        $detection.setSuspicionReason("Vise od 5 prijavljenih objava u jednom danu");
         
         Suspension suspension = new Suspension();
         suspension.setUserId($user.getId());
@@ -35,6 +36,7 @@ agenda-group "bad-users"
         suspension.setDaysBanned(1);
         
         suspensions.add(suspension);
+        System.out.println("DROOLS DEBUG: Dodana suspenzija u listu, ukupno suspenzija: " + suspensions.size());
         System.out.println("Korisnik " + $user.getEmail() + " suspendovan - 5+ prijava u 1 dan");
 end
 
@@ -45,7 +47,7 @@ agenda-group "bad-users"
         $detection : BadUserDetection($user : user, $activities : activities)
         $reportCount : Number(intValue >= 8) from accumulate(
             UserActivity(
-                userId == $user.id,
+                targetId == $user.id,
                 activityType == "POST_REPORTED",
                 timestamp.isAfter(LocalDateTime.now().minusDays(2))
             ) from $activities,
@@ -53,7 +55,7 @@ agenda-group "bad-users"
         )
     then
         $detection.setSuspicious(true);
-        $detection.setSuspicionReason("Više od 8 prijavljenih objava u dva dana");
+        $detection.setSuspicionReason("Vise od 8 prijavljenih objava u dva dana");
         
         Suspension suspension = new Suspension();
         suspension.setUserId($user.getId());
@@ -82,7 +84,7 @@ agenda-group "bad-users"
         )
     then
         $detection.setSuspicious(true);
-        $detection.setSuspicionReason("Više od 4 puta blokiran u jednom danu");
+        $detection.setSuspicionReason("Vise od 4 puta blokiran u jednom danu");
         
         Suspension suspension = new Suspension();
         suspension.setUserId($user.getId());
@@ -111,7 +113,7 @@ agenda-group "bad-users"
         )
         $reportCount : Number(intValue >= 4) from accumulate(
             UserActivity(
-                userId == $user.id,
+                targetId == $user.id,
                 activityType == "POST_REPORTED",
                 timestamp.isAfter(LocalDateTime.now().minusDays(1))
             ) from $activities,
@@ -148,7 +150,7 @@ agenda-group "bad-users"
         )
     then
         $detection.setSuspicious(true);
-        $detection.setSuspicionReason("Prekomerno objavljivanje - više od 20 objava u jednom satu");
+        $detection.setSuspicionReason("Prekomerno objavljivanje - vise od 20 objava u jednom satu");
         
         Suspension suspension = new Suspension();
         suspension.setUserId($user.getId());

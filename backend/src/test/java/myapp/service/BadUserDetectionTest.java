@@ -39,11 +39,11 @@ public class BadUserDetectionTest {
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < 6; i++) {
             activities.add(new UserActivity(
-                user.getId(),
+                (long) (100 + i),    // Drugi korisnici prijavljuju
                 "POST_REPORTED",
                 now.minusHours(i),
                 "Objava prijavljena",
-                (long) (100 + i)
+                user.getId()         // Target je korisnik koji se analizira
             ));
         }
 
@@ -51,7 +51,7 @@ public class BadUserDetectionTest {
         List<Suspension> suspensions = executeDroolsRules(detection);
 
         assertTrue(detection.isSuspicious(), "Korisnik treba da bude označen kao sumnjiv");
-        assertEquals("Više od 5 prijavljenih objava u jednom danu", detection.getSuspicionReason());
+        assertEquals("Vise od 5 prijavljenih objava u jednom danu", detection.getSuspicionReason());
         assertFalse(suspensions.isEmpty(), "Treba da postoji suspenzija");
         
         Suspension suspension = suspensions.get(0);
@@ -69,11 +69,11 @@ public class BadUserDetectionTest {
         LocalDateTime now = LocalDateTime.now();
         for (int i = 0; i < 9; i++) {
             activities.add(new UserActivity(
-                user.getId(),
+                (long) (200 + i),    // Drugi korisnici prijavljuju
                 "POST_REPORTED",
                 now.minusHours(i * 5), 
                 "Objava prijavljena",
-                (long) (200 + i)
+                user.getId()         // Target je korisnik koji se analizira
             ));
         }
 
@@ -81,7 +81,7 @@ public class BadUserDetectionTest {
         List<Suspension> suspensions = executeDroolsRules(detection);
 
         assertTrue(detection.isSuspicious());
-        assertEquals("Više od 8 prijavljenih objava u dva dana", detection.getSuspicionReason());
+        assertEquals("Vise od 8 prijavljenih objava u dva dana", detection.getSuspicionReason());
 
         Suspension suspension = suspensions.stream().filter(s -> "POST_BAN".equals(s.getSuspensionType()) && s.getDaysBanned() == 2).findFirst().orElse(null);
         assertEquals("POST_BAN", suspension.getSuspensionType());
@@ -111,7 +111,7 @@ public class BadUserDetectionTest {
         List<Suspension> suspensions = executeDroolsRules(detection);
 
         assertTrue(detection.isSuspicious());
-        assertEquals("Više od 4 puta blokiran u jednom danu", detection.getSuspicionReason());
+        assertEquals("Vise od 4 puta blokiran u jednom danu", detection.getSuspicionReason());
         
         Suspension suspension = suspensions.get(0);
         assertEquals("POST_BAN", suspension.getSuspensionType());
@@ -139,11 +139,11 @@ public class BadUserDetectionTest {
         
         for (int i = 0; i < 4; i++) {
             activities.add(new UserActivity(
-                user.getId(),
+                (long) (400 + i),    // Drugi korisnici prijavljuju
                 "POST_REPORTED",
                 now.minusHours(i * 2),
                 "Objava prijavljena",
-                (long) (400 + i)
+                user.getId()         // Target je korisnik koji se analizira
             ));
         }
 
@@ -181,7 +181,7 @@ public class BadUserDetectionTest {
         List<Suspension> suspensions = executeDroolsRules(detection);
 
         assertTrue(detection.isSuspicious());
-        assertEquals("Prekomerno objavljivanje - više od 20 objava u jednom satu", detection.getSuspicionReason());
+        assertEquals("Prekomerno objavljivanje - vise od 20 objava u jednom satu", detection.getSuspicionReason());
         
         Suspension suspension = suspensions.get(0);
         assertEquals("POST_BAN", suspension.getSuspensionType());
@@ -226,11 +226,11 @@ public class BadUserDetectionTest {
         
         LocalDateTime now = LocalDateTime.now();
         activities.add(new UserActivity(
-            user.getId(),
+            999L,               // Drugi korisnik prijavljuje
             "POST_REPORTED",
             now.minusDays(2),
             "Stara prijava",
-            100L
+            user.getId()        // Target je korisnik koji se analizira
         ));
 
         BadUserDetection detection = new BadUserDetection(user, activities);
@@ -256,7 +256,7 @@ public class BadUserDetectionTest {
     {
         List<Suspension> suspensions = new ArrayList<>();
         
-        KieSession kieSession = kieContainer.newKieSession("ksession-rules");
+        KieSession kieSession = kieContainer.newKieSession("ksession-bad-users");
         try {
             kieSession.setGlobal("suspensions", suspensions);
             kieSession.insert(detection);

@@ -16,16 +16,36 @@
             <li class="nav-item" v-if="isLoggedIn && isRegular">
                 <router-link class="nav-link" to="/create-post">Create Post</router-link>
               </li>
+            <li class="nav-item" v-if="isLoggedIn && (isRegular || isAdmin)">
+                <router-link class="nav-link" to="/friends">Friends</router-link>
+              </li>
             <li class="nav-item" v-if="isLoggedIn && isAdmin">
               <router-link class="nav-link" to="/create-place">Create Place</router-link>
             </li>
+            <li class="nav-item" v-if="isLoggedIn && isAdmin">
+              <router-link class="nav-link admin-link" to="/admin">
+                <i class="fas fa-shield-alt"></i> Admin Dashboard
+              </router-link>
+            </li>
+            <li class="nav-item" v-if="isLoggedIn && (isRegular || isAdmin)">
+              <router-link class="nav-link" to="/places">Places</router-link>
+            </li>
           </ul>
+          
+          <!-- Centered Search Bar - Only show when logged in -->
+          <div v-if="isLoggedIn" class="d-flex justify-content-center flex-grow-1">
+            <SearchBar />
+          </div>
+          
           <ul class="navbar-nav">
             <li class="nav-item" v-if="!isLoggedIn">
               <router-link class="nav-link" to="/login">Login</router-link>
             </li>
             <li class="nav-item" v-if="!isLoggedIn">
               <router-link class="nav-link" to="/register">Register</router-link>
+            </li>
+            <li class="nav-item" v-if="isLoggedIn && isRegular">
+              <FriendRequestsDropdown />
             </li>
             <li class="nav-item" v-if="isLoggedIn">
               <a class="nav-link" @click.prevent="handleLogout" href="#">Logout</a>
@@ -40,11 +60,16 @@
   import { defineComponent, computed } from 'vue';
   import { useRouter } from 'vue-router';
   import { isLoggedIn, getRole, logout } from '../auth';
+  import SearchBar from './SearchBar.vue';
+  import FriendRequestsDropdown from './FriendRequestsDropdown.vue';
   
   export default defineComponent({
     name: 'NavBar',
-    // emits: ['open-create-post-modal'], // Declare the emitted event
-    setup(props) {
+    components: {
+      SearchBar,
+      FriendRequestsDropdown,
+    },
+    setup() {
       const router = useRouter();
   
       const handleLogout = () => {
@@ -52,11 +77,6 @@
         router.push('/login');
       };
 
-      // const openCreatePostModal = () => {
-      //   emit('open-create-post-modal'); // Emit the event
-      //   console.log('Attempting to open create post modal...'); // For debugging
-      // };
-  
       const isAdmin = computed(() => {
         return getRole() === 'ADMIN';
       });
@@ -70,12 +90,24 @@
         isAdmin,
         isRegular,
         handleLogout,
-        // openCreatePostModal,
       };
     },
   });
   </script>
   
   <style scoped>
-  /* No specific styles needed yet, Bootstrap handles most */
+  /* Admin link styling */
+  .admin-link {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-radius: 4px !important;
+    font-weight: 600 !important;
+  }
+  
+  .admin-link:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  .admin-link i {
+    margin-right: 6px;
+  }
   </style>

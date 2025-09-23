@@ -10,6 +10,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Column;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -59,6 +61,19 @@ public class User implements UserDetails {
     // Friends: store user IDs of friends
     @ElementCollection
     private Set<Long> friends = new HashSet<>();
+
+    // Suspension fields for bad user detection
+    @Column(name = "suspended_until")
+    private LocalDateTime suspendedUntil;
+
+    @Column(name = "can_post", nullable = false, columnDefinition = "boolean default true")
+    private Boolean canPost = true;
+
+    @Column(name = "can_login", nullable = false, columnDefinition = "boolean default true")
+    private Boolean canLogin = true;
+
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -104,13 +119,62 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        // Korisnik je omogućen ako može da se loguje i nije suspendovan
+        return canLogin && (suspendedUntil == null || LocalDateTime.now().isAfter(suspendedUntil));
     }
+
     // Getter and setter for friends
     public Set<Long> getFriends() {
         return friends;
     }
     public void setFriends(Set<Long> friends) {
         this.friends = friends;
+    }
+
+    // Getters and setters for suspension fields
+    public LocalDateTime getSuspendedUntil() {
+        return suspendedUntil;
+    }
+    
+    public void setSuspendedUntil(LocalDateTime suspendedUntil) {
+        this.suspendedUntil = suspendedUntil;
+    }
+    
+    public Boolean getCanPost() {
+        return canPost;
+    }
+    
+    public void setCanPost(Boolean canPost) {
+        this.canPost = canPost;
+    }
+    
+    public Boolean getCanLogin() {
+        return canLogin;
+    }
+    
+    public void setCanLogin(Boolean canLogin) {
+        this.canLogin = canLogin;
+    }
+    
+    public String getSuspensionReason() {
+        return suspensionReason;
+    }
+    
+    public void setSuspensionReason(String suspensionReason) {
+        this.suspensionReason = suspensionReason;
+    }
+
+    // Pomocne metode za proveru stanja suspenzije
+    public boolean isSuspended() {
+        return suspendedUntil != null && LocalDateTime.now().isBefore(suspendedUntil);
+    }
+    
+    public boolean canPostContent() {
+        return canPost && !isSuspended();
+    }
+    
+    public boolean canLoginToSystem() {
+        // Proveri samo da li je canLogin false (LOGIN_BAN ili FULL_SUSPENSION)
+        return canLogin;
     }
 }

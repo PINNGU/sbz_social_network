@@ -14,6 +14,8 @@
     <java.version>17</java.version>
         <spring.boot.version>3.3.2</spring.boot.version>
         <drools.version>8.44.2.Final</drools.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencyManagement>

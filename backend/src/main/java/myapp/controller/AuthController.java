@@ -33,6 +33,22 @@ public class AuthController {
         if (!passwordEncoder.matches(loginRequest.getPassword(), user.getPassword())) {
             return ResponseEntity.status(401).body("Invalid credentials");
         }
+        
+        // checks for suspensions
+        if (!user.canLoginToSystem()) 
+        {
+            String message = "Vaš nalog je suspendovan";
+            if (user.getSuspendedUntil() != null) 
+            {
+                message += " do " + user.getSuspendedUntil();
+            }
+            if (user.getSuspensionReason() != null) 
+            {
+                message += ". Razlog: " + user.getSuspensionReason();
+            }
+            return ResponseEntity.status(403).body(message);
+        }
+        
         // No JWT, just return id, email, role
         return ResponseEntity.ok(new AuthPayloads.AuthResponse(null, user.getId(), user.getEmail(), user.getRole().name()));
     }

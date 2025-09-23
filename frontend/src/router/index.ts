@@ -5,6 +5,9 @@ import GlobalPosts from '../components/GlobalPosts.vue';
 import MyPosts from '../components/MyPosts.vue';
 import CreatePlace from '../components/CreatePlace.vue';
 import CreatePost from '../components/CreatePost.vue';
+import Friends from '../components/Friends.vue';
+import Places from '../components/Places.vue';
+import AdminDashboard from '../components/AdminDashboard.vue';
 
 import { isLoggedIn, getRole } from '../auth'; // Import auth functions
 
@@ -40,8 +43,31 @@ const routes = [
     name: 'CreatePost',
     component: CreatePost,
     meta: { requiresAuth: true } // Requires authentication
+  },
+  {
+    path: '/create-place',
+    name: 'CreatePlace',
+    component: CreatePlace,
+    meta: { requiresAuth: true } 
+  },
+  {
+    path: '/places',
+    name: 'Places',
+    component: Places,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/friends',
+    name: 'Friends',
+    component: Friends,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, requiredRole: 'ADMIN' }
   }
-
 ];
 
 const router = createRouter({

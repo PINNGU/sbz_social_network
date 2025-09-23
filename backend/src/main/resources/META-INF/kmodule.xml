@@ -1,5 +1,16 @@
 <kmodule xmlns="http://www.drools.org/xsd/kmodule">
-  <kbase name="rules" packages="rules">
-    <ksession name="ksession-rules" type="stateful"/>
+  <!-- Post Controller - koristi global-posts.drl i brand-new-users.drl -->
+  <kbase name="posts-rules" packages="rules.posts">
+    <ksession name="ksession-posts" type="stateful"/>
+  </kbase>
+  
+  <!-- Ads Service - koristi samo ads.drl -->
+  <kbase name="ads-rules" packages="rules.ads">
+    <ksession name="ksession-ads" type="stateful"/>
+  </kbase>
+  
+  <!-- Bad Users Detection Service - koristi samo bad-users.drl -->
+  <kbase name="bad-users-rules" packages="rules.badusers">
+    <ksession name="ksession-bad-users" type="stateful"/>
   </kbase>
 </kmodule>

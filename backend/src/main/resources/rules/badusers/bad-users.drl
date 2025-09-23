@@ -1,0 +1,194 @@
+package rules.badusers
+
+import myapp.payload.UserActivity
+import myapp.payload.BadUserDetection
+import myapp.payload.Suspension
+import myapp.model.User
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
+
+global java.util.List suspensions
+
+// 1 : Osoba prijavljena vise od 5 puta u danu
+rule "Five Reports In One Day"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $reportCount : Number(intValue >= 5) from accumulate(
+            UserActivity(
+                targetId == $user.id,
+                activityType == "POST_REPORTED",
+                timestamp.isAfter(LocalDateTime.now().minusDays(1))
+            ) from $activities,
+            count(1)
+        )
+    then
+        System.out.println("DROOLS DEBUG: Pravilo pokrenuto za korisnika " + $user.getEmail() + " sa " + $reportCount + " prijava");
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("Vise od 5 prijavljenih objava u jednom danu");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("POST_BAN");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusDays(1));
+        suspension.setReason("5+ prijava objava u 1 dan");
+        suspension.setDaysBanned(1);
+        
+        suspensions.add(suspension);
+        System.out.println("DROOLS DEBUG: Dodana suspenzija u listu, ukupno suspenzija: " + suspensions.size());
+        System.out.println("Korisnik " + $user.getEmail() + " suspendovan - 5+ prijava u 1 dan");
+end
+
+// 2 : Osoba prijavljena vise od 8 puta u 2 dana // suspenzija na 2 dana od postovanja
+rule "Eight Reports In Two Days"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $reportCount : Number(intValue >= 8) from accumulate(
+            UserActivity(
+                targetId == $user.id,
+                activityType == "POST_REPORTED",
+                timestamp.isAfter(LocalDateTime.now().minusDays(2))
+            ) from $activities,
+            count(1)
+        )
+    then
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("Vise od 8 prijavljenih objava u dva dana");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("POST_BAN");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusDays(2));
+        suspension.setReason("8+ prijava objava u 2 dana");
+        suspension.setDaysBanned(2);
+        
+        suspensions.add(suspension);
+        System.out.println("Korisnik " + $user.getEmail() + " suspendovan - 8+ prijava u 2 dana");
+end
+
+// 3 : Osoba blokirana vise od 4 puta na dan // ban postinga na 1 dan
+rule "Four Blocks In One Day"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $blockCount : Number(intValue >= 4) from accumulate(
+            UserActivity(
+                targetId == $user.id,
+                activityType == "USER_BLOCKED",
+                timestamp.isAfter(LocalDateTime.now().minusDays(1))
+            ) from $activities,
+            count(1)
+        )
+    then
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("Vise od 4 puta blokiran u jednom danu");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("POST_BAN");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusDays(1));
+        suspension.setReason("4+ blokiranja u 1 dan");
+        suspension.setDaysBanned(1);
+        
+        suspensions.add(suspension);
+        System.out.println("Korisnik " + $user.getEmail() + " suspendovan - 4+ blokiranja u 1 dan");
+end
+
+// 4 : vise od 2 puta blokiran na dva dana i vise od 4 prijave u 1 dan // banovan login na 2 dana
+rule "Two Blocks Two Days And Four Reports One Day"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $blockCount : Number(intValue >= 2) from accumulate(
+            UserActivity(
+                targetId == $user.id,
+                activityType == "USER_BLOCKED",
+                timestamp.isAfter(LocalDateTime.now().minusDays(2))
+            ) from $activities,
+            count(1)
+        )
+        $reportCount : Number(intValue >= 4) from accumulate(
+            UserActivity(
+                targetId == $user.id,
+                activityType == "POST_REPORTED",
+                timestamp.isAfter(LocalDateTime.now().minusDays(1))
+            ) from $activities,
+            count(1)
+        )
+    then
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("2+ blokiranja u 2 dana + 4+ prijave u 1 dan");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("LOGIN_BAN");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusDays(2));
+        suspension.setReason("2+ blokiranja u 2 dana + 4+ prijave u 1 dan");
+        suspension.setDaysBanned(2);
+        
+        suspensions.add(suspension);
+        System.out.println("Korisnik " + $user.getEmail() + " suspendovan login - kombinovano kršenje");
+end
+
+// 5 : spamovanje objava tj vise od 10 objava u jednom satu
+rule "Excessive Posting"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $postCount : Number(intValue >= 10) from accumulate(
+            UserActivity(
+                userId == $user.id,
+                activityType == "EXCESSIVE_POSTING",
+                timestamp.isAfter(LocalDateTime.now().minusHours(1))
+            ) from $activities,
+            count(1)
+        )
+    then
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("Prekomerno objavljivanje - vise od 20 objava u jednom satu");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("POST_BAN");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusHours(6));
+        suspension.setReason("20+ objava u 1 sat");
+        suspension.setDaysBanned(1);
+        
+        suspensions.add(suspension);
+        System.out.println("Korisnik " + $user.getEmail() + " suspendovan - prekomerno objavljivanje");
+end
+
+// 6 : spam aktivnost tj vise od 20 objava u prethodnom satu // potpuna suspenzija 
+rule "Spam Activity"
+agenda-group "bad-users"
+    when
+        $detection : BadUserDetection($user : user, $activities : activities)
+        $spamCount : Number(intValue >= 20) from accumulate(
+            UserActivity(
+                userId == $user.id,
+                activityType == "SPAM_ACTIVITY",
+                timestamp.isAfter(LocalDateTime.now().minusMinutes(30))
+            ) from $activities,
+            count(1)
+        )
+    then
+        $detection.setSuspicious(true);
+        $detection.setSuspicionReason("Spam aktivnost - 20+ aktivnosti u 30 minuta");
+        
+        Suspension suspension = new Suspension();
+        suspension.setUserId($user.getId());
+        suspension.setSuspensionType("FULL_SUSPENSION");
+        suspension.setSuspensionStart(LocalDateTime.now());
+        suspension.setSuspensionEnd(LocalDateTime.now().plusDays(1));
+        suspension.setReason("Spam aktivnost");
+        suspension.setDaysBanned(1);
+        
+        suspensions.add(suspension);
+        System.out.println("Korisnik " + $user.getEmail() + " potpuno suspendovan - spam aktivnost");
+end

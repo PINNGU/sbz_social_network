@@ -1,35 +1,43 @@
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, computed } from 'vue';
+import { useRoute } from 'vue-router';
 import NavBar from './components/NavBar.vue';
+import AdsSidebar from './components/AdsSidebar.vue';
+import { isLoggedIn } from './auth';
 // import CreatePost, { type CreatePostModalRef } from './components/CreatePost.vue'; // Import the interface
 
 export default defineComponent({
   name: 'App',
   components: {
     NavBar,
-    // CreatePost, // Register CreatePost component
+    AdsSidebar,
   },
-  // setup() {
-  //   const createPostModalRef = ref<CreatePostModalRef | null>(null); // Use the interface for typing
+  setup() {
+    const route = useRoute();
+    const showAds = computed(() => {
+      const name = route.name as string | undefined;
+      // don't show on login or register, and only when logged in
+      if (!isLoggedIn()) return false;
+      if (name === 'Login' || name === 'Register') return false;
+      return true;
+    });
 
-  //   const handleOpenCreatePostModal = () => {
-  //     if (createPostModalRef.value) {
-  //       createPostModalRef.value.showModal();
-  //     }
-  //   };
-
-  //   return {
-  //     createPostModalRef,
-  //     handleOpenCreatePostModal,
-  //   };
-  // },
+    return { showAds };
+  },
 });
 </script>
 
 <template>
   <div id="app">
     <NavBar />
-    <router-view />
+    <div class="app-body d-flex">
+      <div class="app-main flex-grow-1 p-3">
+        <router-view />
+      </div>
+      <template v-if="showAds">
+        <AdsSidebar />
+      </template>
+    </div>
     <!-- <CreatePost ref="createPostModalRef" /> -->
   </div>
 </template>

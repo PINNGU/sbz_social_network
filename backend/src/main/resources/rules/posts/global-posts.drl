@@ -1,0 +1,209 @@
+
+package rules.posts;
+import myapp.model.Post;
+import myapp.model.User;
+
+global java.util.List filteredPosts;
+global java.util.Map postReasons;
+global java.util.Map friendsMap;
+
+// DEBUG: print friendsMap info and per-post friend checks
+rule "DEBUG friendsMap overview"
+salience 1000
+when
+    $u : User($uid : id)
+then
+    try {
+        System.out.println("[DRL DEBUG] friendsMap keys: " + (friendsMap == null ? "null" : friendsMap.keySet()));
+        System.out.println("[DRL DEBUG] friendsMap for user " + $uid + " -> " + (friendsMap == null ? "null" : friendsMap.get($uid)));
+    } catch (Exception e) {
+        System.out.println("[DRL DEBUG] error printing friendsMap: " + e.getMessage());
+    }
+end
+
+rule "DEBUG per-post friend check"
+salience 999
+when
+    $currentUser : User($myId : id)
+    $post : Post($postId : id, $authorId : user.id)
+then
+    try {
+        java.util.Set authorSet = null;
+        if (friendsMap != null && friendsMap.containsKey($myId)) {
+            Object obj = friendsMap.get($myId);
+            if (obj instanceof java.util.Set) authorSet = (java.util.Set) obj;
+        }
+        System.out.println("[DRL DEBUG] user " + $myId + " checking post " + $postId + " author " + $authorId + " authorSet=" + authorSet + " isFriend=" + (authorSet != null && authorSet.contains($authorId)) + " date=" + $post.getDateOfCreation());
+    } catch (Exception e) {
+        System.out.println("[DRL DEBUG] error in per-post debug: " + e.getMessage());
+    }
+end
+
+// MUST BE NOT NEW USER
+declare EligibleUser
+    id : Long
+end
+
+// Insert EligibleUser if user has at least one friend
+rule "User eligible by having friends"
+salience 200
+when
+    $user : User($myId : id)
+    eval( friendsMap != null && friendsMap.containsKey($myId) && !((java.util.Set)friendsMap.get($myId)).isEmpty() )
+then
+    insertLogical(new EligibleUser($myId));
+end
+
+// Insert EligibleUser if user has at least one post (exists pattern)
+rule "User eligible by having posts"
+salience 199
+when
+    $user : User($myId : id)
+    exists Post(user.id == $myId)
+then
+    insertLogical(new EligibleUser($myId));
+end
+
+//from friends
+rule "Friend post"
+salience 100
+when
+    $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
+    $post : Post($userId : user.id, $date : dateOfCreation, $id : id)
+    eval(
+        friendsMap.containsKey($myId) &&
+        !$myId.equals($userId) &&
+        ((java.util.Set)friendsMap.get($myId)).contains($userId) &&
+        $date != null &&
+        $date.isAfter(java.time.LocalDateTime.now().minusDays(1))
+    )
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend")) {
+        reasons.clear();
+        reasons.add("friend");
+    }
+end
+
+
+
+
+/* suggested by liking */
+rule "Suggested post (liked)"
+salience 59.5
+when
+    $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
+    $post : Post($id : id, $hashtags : hashtags, hashtags != null)
+    $commonHashtag1 : String() from $hashtags
+    Post(likes contains $myId, hashtags != null, hashtags contains $commonHashtag1)
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you") && !reasons.contains("popular") && !reasons.contains("suggested")) {
+        reasons.clear();
+        reasons.add("suggested");
+    }
+end
+
+/* suggested by creaation  */
+rule "Suggested post (created)"
+salience 59
+when
+    $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
+    $post : Post($id : id, $hashtags : hashtags, hashtags != null)
+    $commonHashtag2 : String() from $hashtags
+    Post(user.id == $myId, hashtags != null, hashtags contains $commonHashtag2)
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you") && !reasons.contains("popular") && !reasons.contains("suggested")) {
+        reasons.clear();
+        reasons.add("suggested");
+    }
+end
+
+// liked + popular
+rule "For you post"
+salience 61
+when
+    $currentUser : User($myId : id)
+    EligibleUser(id == $myId)
+    $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
+    $hashtag : String() from $hashtags
+    $count : Number(intValue >= 5) from accumulate(
+        Post($d : dateOfCreation, $h : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null, hashtags contains $hashtag),
+        count(1)
+    )
+    Post($likedHashtags : hashtags, likes contains $myId, hashtags contains $hashtag)
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you")) {
+        reasons.clear();
+        reasons.add("for_you");
+    }
+end
+
+
+
+//populars are not required to be not new - makes more sense to me
+
+
+rule "Popular post by trending hashtag"
+salience 40
+when
+    $post : Post($id : id, $date : dateOfCreation, $hashtags : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null)
+    $hashtag : String() from $hashtags
+    $count : Number(intValue >= 5) from accumulate(
+        Post($d : dateOfCreation, $h : hashtags, dateOfCreation > java.time.LocalDateTime.now().minusHours(24), hashtags != null, hashtags contains $hashtag),
+        count(1)
+    )
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    java.util.Set reasons = (java.util.Set)postReasons.get($id);
+    if (!reasons.contains("friend") && !reasons.contains("for_you") && !reasons.contains("popular")) {
+        reasons.clear();
+        reasons.add("popular");
+    }
+end
+
+rule "Popular post by likes"
+salience 30
+when
+    $post : Post($id : id, $date : dateOfCreation, $likes : likes)
+    eval($date != null && $date.isAfter(java.time.LocalDateTime.now().minusHours(24)) && $likes != null && $likes.size() >= 5)
+    eval(!filteredPosts.contains($post))
+    eval(!postReasons.containsKey($id))
+then
+    filteredPosts.add($post);
+    if (!postReasons.containsKey($id)) {
+        postReasons.put($id, new java.util.HashSet<String>());
+    }
+    ((java.util.Set)postReasons.get($id)).add("popular");
+end
+

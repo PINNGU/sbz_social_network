@@ -29,11 +29,6 @@
               <button v-if="!hasUserRated(place.id)" class="btn btn-sm ms-2 btn-outline-primary" @click="toggleRateForm(place.id)">Rate</button>
               <button v-else class="btn btn-sm ms-2 btn-outline-secondary" @click="toggleRateForm(place.id, true)">Edit Rating</button>
             </div>
-
-            <span class="reason-labels right-align">
-              <span class="hashtag-label">{{ place.hashtag || '' }}</span>
-              <span class="type-label">{{ place.type || '' }}</span>
-            </span>
           </div>
 
 
@@ -222,7 +217,7 @@ export default defineComponent({
 }
 .posts-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 1.5rem;
 }
 .post-card {
@@ -234,6 +229,8 @@ export default defineComponent({
   flex-direction: column;
   transition: box-shadow 0.2s;
   border-left: 6px solid transparent;
+  min-height: 250px;
+  overflow: hidden;
 }
 .post-card:hover {
   box-shadow: 0 4px 16px rgba(24,119,242,0.12);
@@ -251,21 +248,43 @@ export default defineComponent({
   font-size: 1.05rem;
 }
 .post-meta { color: #90949c; }
-.place-type { color: #50575b; font-weight:600; margin-top: 0.25rem; }
+.place-type { 
+  color: #50575b; 
+  font-weight: 600; 
+  margin-top: 0.25rem; 
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
 .post-body { flex: 1; }
 .post-description { font-size: 1rem; margin-bottom: 0.5rem; color:#333; }
 .post-footer {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   font-size: 0.95rem;
   color: #65676b;
   margin-top: 0.6rem;
   justify-content: flex-start;
 }
 .avg-rating { font-weight: 700; color: #d48806; }
-.hashtag-label { background: #e7f3ff; color: #1877f2; border-radius: 8px; padding: 0.2rem 0.5rem; }
-.type-label { background: #f3f6f7; color: #50575b; border-radius: 8px; padding: 0.2rem 0.5rem; margin-left: 0.4rem; font-weight:600; }
+.hashtag-label { 
+  background: #e7f3ff; 
+  color: #1877f2; 
+  border-radius: 8px; 
+  padding: 0.2rem 0.5rem; 
+  font-size: 0.85rem;
+  word-break: break-word;
+}
+.type-label { 
+  background: #f3f6f7; 
+  color: #50575b; 
+  border-radius: 8px; 
+  padding: 0.2rem 0.5rem; 
+  font-weight: 600; 
+  font-size: 0.85rem;
+  word-break: break-word;
+}
 .rate-form { margin-top: 1rem; display:flex; flex-direction:column; gap:0.5rem; }
 .rate-form input, .rate-form select { padding: 0.4rem; border-radius:6px; border:1px solid #ddd; }
 .rate-form-actions { display:flex; gap:0.5rem; }

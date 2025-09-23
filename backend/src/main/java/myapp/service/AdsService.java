@@ -97,7 +97,7 @@ public class AdsService {
         }
 
         result.sort(Comparator.comparingDouble(AdRecommendation::getScore).reversed());
-        // return top 10
-        return result.size() > 10 ? result.subList(0, 10) : result;
+        // return top 3
+        return result.size() > 3 ? result.subList(0, 3) : result;
     }
 }

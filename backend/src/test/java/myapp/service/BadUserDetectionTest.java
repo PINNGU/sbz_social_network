@@ -264,7 +264,7 @@ public class BadUserDetectionTest {
             for (UserActivity activity : detection.getActivities()) {
                 kieSession.insert(activity);
             }
-            
+            kieSession.getAgenda().getAgendaGroup("bad-users").setFocus();
             kieSession.fireAllRules();
             return suspensions;
         } finally {

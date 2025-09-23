@@ -2,10 +2,12 @@ package myapp.service;
 
 import myapp.model.Place;
 import myapp.model.PlaceRating;
+import myapp.model.Post;
 import myapp.model.User;
 import myapp.payload.AdRecommendation;
 import myapp.repository.PlaceRepository;
 import myapp.repository.PlaceRatingRepository;
+import myapp.repository.PostRepository;
 import myapp.repository.UserRepository;
 
 import org.kie.api.runtime.KieSession;
@@ -25,6 +27,9 @@ public class AdsService {
     private PlaceRatingRepository placeRatingRepository;
 
     @Autowired
+    private PostRepository postRepository;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -40,23 +45,33 @@ public class AdsService {
         // Simple pre-scoring and pass to Drools via globals
         Map<Long, Double> scoreMap = new HashMap<>();
         Map<Long, String> reasonMap = new HashMap<>();
-        for (Place p : places) {
+        for (Place p : places) 
+        {
             scoreMap.put(p.getId(), 0.0);
             reasonMap.put(p.getId(), "");
         }
 
-        KieSession ksession = kieContainer.newKieSession("ksession-rules");
-        try {
+        KieSession ksession = kieContainer.newKieSession("ksession-ads");
+        try 
+        {
+            // Set globals for ads rules only
             ksession.setGlobal("placeScores", scoreMap);
             ksession.setGlobal("placeReasons", reasonMap);
             ksession.setGlobal("currentUser", user);
+            
             // insert places and ratings
             for (Place p : places) ksession.insert(p);
             List<PlaceRating> ratings = placeRatingRepository.findAll();
             for (PlaceRating r : ratings) ksession.insert(r);
+            
+            // insert all posts for hashtag matching from liked posts
+            List<Post> posts = postRepository.findAll();
+            for (Post post : posts) ksession.insert(post);
 
             if (user != null) ksession.insert(user);
 
+            // Activate only "ads" agenda group instead of all rules
+            ksession.getAgenda().getAgendaGroup("ads").setFocus();
             ksession.fireAllRules();
         } finally {
             ksession.dispose();

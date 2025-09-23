@@ -1,4 +1,4 @@
-package rules
+package rules.badusers
 
 import myapp.payload.UserActivity
 import myapp.payload.BadUserDetection
@@ -11,6 +11,7 @@ global java.util.List suspensions
 
 // 1 : Osoba prijavljena vise od 5 puta u danu
 rule "Five Reports In One Day"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $reportCount : Number(intValue >= 5) from accumulate(
@@ -39,6 +40,7 @@ end
 
 // 2 : Osoba prijavljena vise od 8 puta u 2 dana // suspenzija na 2 dana od postovanja
 rule "Eight Reports In Two Days"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $reportCount : Number(intValue >= 8) from accumulate(
@@ -67,6 +69,7 @@ end
 
 // 3 : Osoba blokirana vise od 4 puta na dan // ban postinga na 1 dan
 rule "Four Blocks In One Day"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $blockCount : Number(intValue >= 4) from accumulate(
@@ -95,6 +98,7 @@ end
 
 // 4 : vise od 2 puta blokiran na dva dana i vise od 4 prijave u 1 dan // banovan login na 2 dana
 rule "Two Blocks Two Days And Four Reports One Day"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $blockCount : Number(intValue >= 2) from accumulate(
@@ -131,6 +135,7 @@ end
 
 // 5 : spamovanje objava tj vise od 10 objava u jednom satu
 rule "Excessive Posting"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $postCount : Number(intValue >= 10) from accumulate(
@@ -159,6 +164,7 @@ end
 
 // 6 : spam aktivnost tj vise od 20 objava u prethodnom satu // potpuna suspenzija 
 rule "Spam Activity"
+agenda-group "bad-users"
     when
         $detection : BadUserDetection($user : user, $activities : activities)
         $spamCount : Number(intValue >= 20) from accumulate(

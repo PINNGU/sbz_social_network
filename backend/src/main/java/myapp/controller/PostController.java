@@ -95,7 +95,7 @@ public class PostController {
         RecommendationAgent.setAllPosts(allPosts);
 
         // Drools session
-        KieSession kieSession = kieContainer.newKieSession("ksession-rules");
+        KieSession kieSession = kieContainer.newKieSession("ksession-posts");
         kieSession.insert(currentUser);
 
         // Build friends map from FriendsService (userId -> Set<friendId>)
@@ -143,6 +143,7 @@ public class PostController {
             System.out.println("Inserting post into Drools: id=" + post.getId() + ", likes=" + (post.getLikes() != null ? post.getLikes().size() : 0) + ", date=" + post.getDateOfCreation() + ", hashtags=" + post.getHashtags() + ", userId=" + post.getUser().getId());
             kieSession.insert(post);
         }
+        
         kieSession.fireAllRules();
         kieSession.dispose();
 

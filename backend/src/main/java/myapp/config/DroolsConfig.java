@@ -17,6 +17,6 @@ public class DroolsConfig {
     @Bean
     @Scope("prototype")
     public KieSession kieSession(KieContainer kieContainer) {
-        return kieContainer.newKieSession("ksession-rules");
+        return kieContainer.newKieSession("ksession-posts");
     }
 }

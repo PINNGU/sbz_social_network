@@ -61,7 +61,7 @@ public class BadUserDetectionService {
         List<UserActivity> activities = collectUserActivities(user);
         BadUserDetection detection = new BadUserDetection(user, activities);
 
-        KieSession kieSession = kieContainer.newKieSession("ksession-rules");
+        KieSession kieSession = kieContainer.newKieSession("ksession-bad-users");
         
         try {
             // Lista za čuvanje suspenzija koje će biti kreirane tokom izvršavanja pravila
@@ -76,7 +76,8 @@ public class BadUserDetectionService {
                 kieSession.insert(activity);
             }
 
-            // Pokreni pravila
+            // Pokreni samo "bad-users" pravila
+            kieSession.getAgenda().getAgendaGroup("bad-users").setFocus();
             kieSession.fireAllRules();
 
             // Primeni suspenzije

@@ -1,5 +1,5 @@
 
-package rules;
+package rules.posts;
 import myapp.model.Post;
 import myapp.model.User;
 

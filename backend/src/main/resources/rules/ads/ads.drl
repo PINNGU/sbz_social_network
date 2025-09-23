@@ -1,0 +1,203 @@
+package rules.ads;
+
+import myapp.model.Place;
+import myapp.model.PlaceRating;
+import myapp.model.User;
+import myapp.model.Post;
+import java.util.Map;
+
+global java.util.Map placeScores;
+global java.util.Map placeReasons;
+global User currentUser;
+
+// Rule: if user's address contains place town -> boost local places
+rule "Local place preference"
+agenda-group "ads"
+when
+    $p : Place($id : id, $town : town) 
+    eval($town != null && currentUser != null && currentUser.getAddress() != null)
+then
+    try {
+        String town = $town.toLowerCase();
+        String address = currentUser.getAddress().toLowerCase();
+        Double prev = (Double) placeScores.get($id);
+        if (prev == null) prev = 0.0;
+        
+        if (address.contains(town)) {
+            prev += 2.0;
+            placeReasons.put($id, "local_place_match");
+        }
+        placeScores.put($id, prev);
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Local place preference: " + e.getMessage());
+    }
+end
+
+// Rule: prefer places of types user liked before (based on place ratings)
+rule "Prefer liked place types"
+agenda-group "ads"
+when
+    $p : Place($id : id, $type : type)
+    $r : PlaceRating(placeId == $id, rating >= 4)
+then
+    try {
+        Double prev = (Double) placeScores.get($id);
+        if (prev == null) prev = 0.0;
+        prev += 1.5;
+        placeScores.put($id, prev);
+        placeReasons.put($id, "high_rating");
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Prefer liked place types: " + e.getMessage());
+    }
+end
+
+// Rule: boost/penalize based on user's own rating of the same place
+rule "User's previous rating influence"
+agenda-group "ads"
+when
+    eval(currentUser != null)
+    $p : Place($id : id)
+    $r : PlaceRating(placeId == $id, userId == currentUser.id, $rating : rating)
+then
+    try {
+        Double prev = (Double) placeScores.get($id);
+        if (prev == null) prev = 0.0;
+        
+        if ($rating > 3) {
+            prev += 3.0;  // Strong boost for places user liked
+            placeReasons.put($id, "user_liked_before");
+        } else {
+            prev -= 2.0;  // Penalty for places user didn't like
+            placeReasons.put($id, "user_disliked_before");
+        }
+        placeScores.put($id, prev);
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in User's previous rating influence: " + e.getMessage());
+    }
+end
+
+// Rule: if user rated same place type highly before -> boost similar places
+rule "Boost by user preferred place type"
+agenda-group "ads"
+when
+    $u : User($uid : id)
+    $ratedPlace : Place($ratedPlaceId : id, $ratedType : type)
+    $r : PlaceRating(userId == $uid, placeId == $ratedPlaceId, $rating : rating)
+    $p : Place($id : id, $type : type) 
+    eval($p.getId() != $ratedPlaceId && $type != null && $ratedType != null && $type.equals($ratedType))
+then
+    try {
+        Double prev = (Double) placeScores.get($p.getId());
+        if (prev == null) prev = 0.0;
+        
+        if ($rating > 3) {
+            prev += 2.0;  // Boost for similar place types user liked
+            placeReasons.put($p.getId(), "preferred_type_" + $type);
+        } else {
+            prev -= 1.0;  // Penalty for similar place types user didn't like
+            placeReasons.put($p.getId(), "disliked_type_" + $type);
+        }
+        placeScores.put($p.getId(), prev);
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Boost by user preferred place type: " + e.getMessage());
+    }
+end
+
+// Rule: boost places with good average rating
+rule "Boost by average rating"
+agenda-group "ads"
+when
+    $p : Place($id : id)
+    $count : Number() from accumulate(
+        PlaceRating(placeId == id, $r : rating),
+        average($r)
+    )
+    eval($count != null && $count.doubleValue() >= 4.0)
+then
+    try {
+        Double prev = (Double) placeScores.get($p.getId());
+        if (prev == null) prev = 0.0;
+        prev += 2.5;
+        placeScores.put($p.getId(), prev);
+        placeReasons.put($p.getId(), "avg_high_rating");
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Boost by average rating: " + e.getMessage());
+    }
+end
+
+// Rule: match hashtags from user's place ratings with place hashtags
+rule "Match hashtags from user ratings"
+agenda-group "ads"
+when
+    eval(currentUser != null)
+    $p : Place($id : id, $placeHashtag : hashtag)
+    $r : PlaceRating(userId == currentUser.id, $ratingHashtag : hashtag)
+    eval($placeHashtag != null && $ratingHashtag != null && 
+         $placeHashtag.toLowerCase().contains($ratingHashtag.toLowerCase()))
+then
+    try {
+        Double prev = (Double) placeScores.get($id);
+        if (prev == null) prev = 0.0;
+        prev += 1.5;  // Boost for hashtag match from user's ratings
+        placeScores.put($id, prev);
+        placeReasons.put($id, "hashtag_from_ratings");
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Match hashtags from user ratings: " + e.getMessage());
+    }
+end
+
+// Rule: match hashtags from posts user liked with place hashtags
+rule "Match hashtags from liked posts"
+agenda-group "ads"
+when
+    eval(currentUser != null)
+    $p : Place($id : id, $placeHashtag : hashtag)
+    $post : Post($likes : likes, $postHashtags : hashtags)
+    eval($likes != null && currentUser != null && $likes.contains(currentUser.getId()))
+    eval($placeHashtag != null && $postHashtags != null && !$postHashtags.isEmpty())
+then
+    try {
+        Double prev = (Double) placeScores.get($id);
+        if (prev == null) prev = 0.0;
+        
+        String placeHash = $placeHashtag.toLowerCase();
+        boolean hashtagMatch = false;
+        
+        // Use iterator to avoid type issues in Drools
+        java.util.Iterator iter = $postHashtags.iterator();
+        while (iter.hasNext()) {
+            Object hashtagObj = iter.next();
+            if (hashtagObj instanceof String) {
+                String postHashtag = (String) hashtagObj;
+                if (postHashtag != null && placeHash.contains(postHashtag.toLowerCase())) {
+                    hashtagMatch = true;
+                    break;
+                }
+            }
+        }
+        
+        if (hashtagMatch) {
+            prev += 2.0;  // Strong boost for hashtag match from liked posts
+            placeScores.put($id, prev);
+            placeReasons.put($id, "hashtag_from_liked_posts");
+        }
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Match hashtags from liked posts: " + e.getMessage());
+    }
+end
+
+// Final cap: ensure non-negative and small boost for all
+rule "Default small boost"
+agenda-group "ads"
+when
+    $p : Place($id : id)
+then
+    try {
+        Double prev = (Double) placeScores.get($p.getId());
+        if (prev == null) prev = 0.1;
+        placeScores.put($p.getId(), prev);
+        if (!placeReasons.containsKey($p.getId())) placeReasons.put($p.getId(), "default");
+    } catch (Exception e) {
+        System.out.println("ads.drl: error in Default small boost: " + e.getMessage());
+    }
+end

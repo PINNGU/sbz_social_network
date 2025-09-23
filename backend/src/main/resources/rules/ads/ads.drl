@@ -23,31 +23,18 @@ then
         Double prev = (Double) placeScores.get($id);
         if (prev == null) prev = 0.0;
         
+        System.out.println("DEBUG: Local preference for " + $p.getName() + " - user address: '" + address + "', place town: '" + town + "'");
+        
         if (address.contains(town)) {
             prev += 2.0;
             placeReasons.put($id, "local_place_match");
+            System.out.println("DEBUG: " + $p.getName() + " got local boost +2.0, new score: " + prev);
+        } else {
+            System.out.println("DEBUG: " + $p.getName() + " NO local boost (address doesn't contain town)");
         }
         placeScores.put($id, prev);
     } catch (Exception e) {
         System.out.println("ads.drl: error in Local place preference: " + e.getMessage());
-    }
-end
-
-// Rule: prefer places of types user liked before (based on place ratings)
-rule "Prefer liked place types"
-agenda-group "ads"
-when
-    $p : Place($id : id, $type : type)
-    $r : PlaceRating(placeId == $id, rating >= 4)
-then
-    try {
-        Double prev = (Double) placeScores.get($id);
-        if (prev == null) prev = 0.0;
-        prev += 1.5;
-        placeScores.put($id, prev);
-        placeReasons.put($id, "high_rating");
-    } catch (Exception e) {
-        System.out.println("ads.drl: error in Prefer liked place types: " + e.getMessage());
     }
 end
 
@@ -63,12 +50,16 @@ then
         Double prev = (Double) placeScores.get($id);
         if (prev == null) prev = 0.0;
         
+        System.out.println("DEBUG: User's rating influence for " + $p.getName() + " - user rating: " + $rating);
+        
         if ($rating > 3) {
             prev += 3.0;  // Strong boost for places user liked
             placeReasons.put($id, "user_liked_before");
+            System.out.println("DEBUG: " + $p.getName() + " got user rating boost +3.0, new score: " + prev);
         } else {
             prev -= 2.0;  // Penalty for places user didn't like
             placeReasons.put($id, "user_disliked_before");
+            System.out.println("DEBUG: " + $p.getName() + " got user rating penalty -2.0, new score: " + prev);
         }
         placeScores.put($id, prev);
     } catch (Exception e) {
@@ -93,9 +84,11 @@ then
         if ($rating > 3) {
             prev += 2.0;  // Boost for similar place types user liked
             placeReasons.put($p.getId(), "preferred_type_" + $type);
+            System.out.println("DEBUG: " + $p.getName() + " got preferred type boost +2.0, new score: " + prev + ", type: " + $type + ", rating: " + $rating);
         } else {
             prev -= 1.0;  // Penalty for similar place types user didn't like
             placeReasons.put($p.getId(), "disliked_type_" + $type);
+            System.out.println("DEBUG: " + $p.getName() + " got disliked type penalty -1.0, new score: " + prev + ", type: " + $type + ", rating: " + $rating);
         }
         placeScores.put($p.getId(), prev);
     } catch (Exception e) {
@@ -120,6 +113,7 @@ then
         prev += 2.5;
         placeScores.put($p.getId(), prev);
         placeReasons.put($p.getId(), "avg_high_rating");
+        System.out.println("DEBUG: " + $p.getName() + " got avg rating boost +2.5, new score: " + prev + ", avg rating: " + $count.doubleValue());
     } catch (Exception e) {
         System.out.println("ads.drl: error in Boost by average rating: " + e.getMessage());
     }
@@ -141,6 +135,7 @@ then
         prev += 1.5;  // Boost for hashtag match from user's ratings
         placeScores.put($id, prev);
         placeReasons.put($id, "hashtag_from_ratings");
+        System.out.println("DEBUG: " + $p.getName() + " got hashtag from ratings boost +1.5, new score: " + prev + ", place hashtag: " + $placeHashtag + ", rating hashtag: " + $ratingHashtag);
     } catch (Exception e) {
         System.out.println("ads.drl: error in Match hashtags from user ratings: " + e.getMessage());
     }
@@ -180,6 +175,7 @@ then
             prev += 2.0;  // Strong boost for hashtag match from liked posts
             placeScores.put($id, prev);
             placeReasons.put($id, "hashtag_from_liked_posts");
+            System.out.println("DEBUG: " + $p.getName() + " got hashtag from liked posts boost +2.0, new score: " + prev + ", place hashtag: " + $placeHashtag);
         }
     } catch (Exception e) {
         System.out.println("ads.drl: error in Match hashtags from liked posts: " + e.getMessage());
@@ -194,9 +190,14 @@ when
 then
     try {
         Double prev = (Double) placeScores.get($p.getId());
-        if (prev == null) prev = 0.1;
-        placeScores.put($p.getId(), prev);
-        if (!placeReasons.containsKey($p.getId())) placeReasons.put($p.getId(), "default");
+        if (prev == null) {
+            prev = 0.1;
+            placeScores.put($p.getId(), prev);
+            placeReasons.put($p.getId(), "default");
+            System.out.println("DEBUG: " + $p.getName() + " got default boost: " + prev);
+        } else {
+            System.out.println("DEBUG: " + $p.getName() + " already has score: " + prev + " (no default boost)");
+        }
     } catch (Exception e) {
         System.out.println("ads.drl: error in Default small boost: " + e.getMessage());
     }

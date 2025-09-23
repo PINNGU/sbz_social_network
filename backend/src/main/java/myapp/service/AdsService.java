@@ -36,10 +36,15 @@ public class AdsService {
     private KieContainer kieContainer;
 
     public List<AdRecommendation> recommendForUser(Long userId) {
+        System.out.println("DEBUG AdsService: Starting recommendation for user: " + userId);
+        
         List<Place> places = placeRepository.findAll();
         User user = null;
         if (userId != null) {
             user = userRepository.findById(userId).orElse(null);
+            if (user != null) {
+                System.out.println("DEBUG AdsService: User found - name: " + user.getName() + ", address: '" + user.getAddress() + "'");
+            }
         }
 
         // Simple pre-scoring and pass to Drools via globals
@@ -70,9 +75,15 @@ public class AdsService {
 
             if (user != null) ksession.insert(user);
 
+            System.out.println("DEBUG AdsService: Before firing rules - scoreMap: " + scoreMap);
+            System.out.println("DEBUG AdsService: Before firing rules - reasonMap: " + reasonMap);
+            
             // Activate only "ads" agenda group instead of all rules
             ksession.getAgenda().getAgendaGroup("ads").setFocus();
             ksession.fireAllRules();
+            
+            System.out.println("DEBUG AdsService: After firing rules - scoreMap: " + scoreMap);
+            System.out.println("DEBUG AdsService: After firing rules - reasonMap: " + reasonMap);
         } finally {
             ksession.dispose();
         }

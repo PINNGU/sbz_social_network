@@ -174,6 +174,7 @@ public class User implements UserDetails {
     }
     
     public boolean canLoginToSystem() {
-        return canLogin && !isSuspended();
+        // Proveri samo da li je canLogin false (LOGIN_BAN ili FULL_SUSPENSION)
+        return canLogin;
     }
 }

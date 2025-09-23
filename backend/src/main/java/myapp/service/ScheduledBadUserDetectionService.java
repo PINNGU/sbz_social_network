@@ -19,7 +19,7 @@ public class ScheduledBadUserDetectionService {
     {
         try 
         {
-            System.out.println("=== POKRETANJE PERIODIČNE DETEKCIJE LOŠIH KORISNIKA ===");
+            System.out.println("=== POKRETANJE PERIODICNE DETEKCIJE LOSIH KORISNIKA ===");
             System.out.println("Vreme: " + LocalDateTime.now());
             
             List<BadUserDetection> suspiciousUsers = badUserDetectionService.detectBadUsers();
@@ -33,12 +33,12 @@ public class ScheduledBadUserDetectionService {
                 }
             }
             
-            System.out.println("=== PERIODIČNA DETEKCIJA ZAVRŠENA ===\n");
+            System.out.println("=== PERIODICNA DETEKCIJA ZAVRSENA ===\n");
             
         } 
         catch (Exception e) 
         {
-            System.err.println("Greška tokom periodične detekcije loših korisnika: " + e.getMessage());
+            System.err.println("Greska tokom periodične detekcije loših korisnika: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -60,15 +60,15 @@ public class ScheduledBadUserDetectionService {
                 }
             }
             
-            System.out.println("Dnevna analiza završena:");
+            System.out.println("Dnevna analiza zavrsena:");
             System.out.println("- Ukupno analiziranih korisnika: " + suspiciousUsers.size());
             System.out.println("- Broj suspendovanih: " + suspendedCount);
-            System.out.println("=== DNEVNA ANALIZA ZAVRŠENA ===\n");
+            System.out.println("=== DNEVNA ANALIZA ZAVRSENA ===\n");
             
         } 
         catch (Exception e) 
         {
-            System.err.println("Greška tokom dnevne analize: " + e.getMessage());
+            System.err.println("Greska tokom dnevne analize: " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -78,17 +78,17 @@ public class ScheduledBadUserDetectionService {
     {
         try 
         {
-            System.out.println("Pokretanje čišćenja isteklih suspenzija...");
+            System.out.println("Pokretanje ciscenja isteklih suspenzija...");
             
             int clearedCount = badUserDetectionService.clearExpiredSuspensions();
             
             if (clearedCount > 0) 
             {
-                System.out.println("Očišćeno " + clearedCount + " isteklih suspenzija");
+                System.out.println("Ocisceno " + clearedCount + " isteklih suspenzija");
             }
             
         } catch (Exception e) {
-            System.err.println("Greška tokom čišćenja suspenzija: " + e.getMessage());
+            System.err.println("Greska tokom ciscenja suspenzija: " + e.getMessage());
         }
     }
 }
